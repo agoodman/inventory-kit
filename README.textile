@@ -30,7 +30,7 @@ Once you have configured your in-app purchase products in iTunes Connect, you ca
 
 h2. Transitioning Your App
 
-The transition process is simple. Create a file in your resource bundle called TransitionProducts.plist. See the example in the IKExample app for more details. Once you have this file in your resource bundle, you must add the following line of code to your app delegate:
+The transition process is simple. Create a file in your resource bundle called <code>TransitionProducts.plist</code>. See the example in the IKExample app for more details. Once you have this file in your resource bundle, you must add the following line of code to your app delegate:
 
 <pre>
 [InventoryKit prepareTransitionProducts];
@@ -42,7 +42,7 @@ NOTE: *You must remove this line of code before publishing the free version of t
 
 h2. Bundles
 
-With Scorch 1.2, bundles were introduced. This feature allows you to package multiple in-app purchase products together as a bundle. Bundles are treated exactly the same as products. They each must have a unique product ID configured in iTunes Connect. You trigger a bundle purchase exactly the same way you do a stand-alone product. The difference is that IK looks for a configuration file (another plist) in your resource bundle. Create a new file in your project called IKBundles.plist. See the example in the IKExample app for more details. When IK receives successful purchase callbacks from StoreKit, it automatically activates all the product IDs associated with the given bundle product ID.
+With Scorch 1.2, bundles were introduced. This feature allows you to package multiple in-app purchase products together as a bundle. Bundles are treated exactly the same as products. They each must have a unique product ID configured in iTunes Connect. You trigger a bundle purchase exactly the same way you do a stand-alone product. The difference is that IK looks for a configuration file (another plist) in your resource bundle. Create a new file in your project called <code>IKBundles.plist</code>. See the example in the IKExample app for more details. When IK receives successful purchase callbacks from StoreKit, it automatically activates all the product IDs associated with the given bundle product ID.
 
 h1. Profit
 
