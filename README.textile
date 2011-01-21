@@ -60,7 +60,7 @@ h2. Product Activation
 * Query Product Activation
 
 <pre>
-[InventoryKit productActivated:@"your.product.id"];
+BOOL isActivated = [InventoryKit productActivated:@"your.product.id"];
 </pre>
 
 h2. Product Purchase
