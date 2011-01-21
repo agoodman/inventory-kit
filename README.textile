@@ -51,11 +51,14 @@ Using IK is a snap. There are a handful of synchronous methods for querying and 
 h2. Product Activation
 
 * Activate/Deactivate a Product
+
 <pre>
 [InventoryKit activateProduct:@"your.product.id"];
 [InventoryKit deactivateProduct:@"your.product.id"];
 </pre>
+
 * Query Product Activation
+
 <pre>
 [InventoryKit productActivated:@"your.product.id"];
 </pre>
