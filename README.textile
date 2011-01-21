@@ -44,6 +44,34 @@ h2. Bundles
 
 With Scorch 1.2, bundles were introduced. This feature allows you to package multiple in-app purchase products together as a bundle. Bundles are treated exactly the same as products. They each must have a unique product ID configured in iTunes Connect. You trigger a bundle purchase exactly the same way you do a stand-alone product. The difference is that IK looks for a configuration file (another plist) in your resource bundle. Create a new file in your project called <code>IKBundles.plist</code>. See the example in the IKExample app for more details. When IK receives successful purchase callbacks from StoreKit, it automatically activates all the product IDs associated with the given bundle product ID.
 
+h1. Usage
+
+Using IK is a snap. There are a handful of synchronous methods for querying and manipulating product activation. There are also a handful of asynchronous methods and a corresponding delegate for guiding the user through the purchasing process and for restoring purchases the user made (potentially on a different device).
+
+h2. Product Activation
+
+* Activate/Deactivate a Product
+<pre>
+[InventoryKit activateProduct:@"your.product.id"];
+[InventoryKit deactivateProduct:@"your.product.id"];
+</pre>
+* Query Product Activation
+<pre>
+[InventoryKit productActivated:@"your.product.id"];
+</pre>
+
+h2. Product Purchase
+
+<pre>
+[InventoryKit purchaseProduct:@"your.product.id" delegate:yourDelegate];
+</pre>
+
+h2. Restore Purchases
+
+<pre>
+[InventoryKit restoreProducts:yourDelegate];
+</pre>
+
 h1. Profit
 
 That's it. You're ready to make money. InventoryKit is free to use and improve, but I always accept donations. Please send them via PayPal to aubrey.goodman@gmail.com. Remember me when you make your millions.
