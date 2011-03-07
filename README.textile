@@ -2,13 +2,13 @@ h1. Overview
 
 InventoryKit is a free open source library that provides a synchronous (blocking) wrapper around Apple's StoreKit API for managing in-app purchases. It also supports programmatic activation of products, allowing you to offer unique and exciting features to your users. In games, for example, you can have an achievement that unlocks a feature the player would otherwise need to buy. It's also easy to include easter eggs that activate products. IK also makes it easy to prompt the user to buy a product, providing a simple asynchronous helper method and delegate interface.
 
-Currently, IK only supports non-consumable purchases. Future releases aim to include support for consumables and subscriptions.
+IK 1.0 only supports non-consumable purchases. Future releases aim to include support for consumables and subscriptions. 2.0 is in active development (master) and will include consumables (only stored on the device, not available on other platforms) and auto-renewable subscriptions (synced with third party service, stored locally for offline support).
 
 h1. History
 
-IK was originally written as part of Scorch ("App Store link":http://itunes.com/app/scorch) to transition between the "lite/paid" split app paradigm to the "free + in-app purchase" single app paradigm. The problem was the folks who bought the paid app should be able to continue to use the features they bought, while also taking advantages of updates. The strategy was to remove the "lite" version from the App Store and set the price of the paid version to zero (free). Then, the features from the paid version were made available as in-app upgrades. Clearly, the folks who already paid for the app would not be happy to be forced to pay again for the same features.
+IK was originally written as part of Scorched Earth ("App Store link":http://itunes.com/app/scorch) to transition between the "lite/paid" split app paradigm to the "free + in-app purchase" single app paradigm. The problem was the folks who bought the paid app should be able to continue to use the features they bought, while also taking advantages of updates. The strategy was to remove the "lite" version from the App Store and set the price of the paid version to zero (free). Then, the features from the paid version were made available as in-app upgrades. Clearly, the folks who already paid for the app would not be happy to be forced to pay again for the same features.
 
-IK solves this problem by providing a transition mechanism, whereby you issue an update to your paid app before you perform the conversion process described above. This update includes a plist describing all the products to be transitioned, as well as a single line of code to be included in your app delegate. Release an update with this change, then wait a month or two to allow your users to update before enabling the in-app purchases.
+IK solves this problem by providing a transition mechanism, whereby you issue an update to your paid app before you perform the conversion process described above. This update includes a plist describing all the products to be transitioned, as well as a single line of code to be included in your app delegate. Release an update with this change, then wait a month or two to allow your users to update before releasing a second update to enable the in-app purchases.
 
 h1. Installation
 
@@ -42,7 +42,11 @@ NOTE: *You must remove this line of code before publishing the free version of t
 
 h2. Bundles
 
-With Scorch 1.2, bundles were introduced. This feature allows you to package multiple in-app purchase products together as a bundle. Bundles are treated exactly the same as products. They each must have a unique product ID configured in iTunes Connect. You trigger a bundle purchase exactly the same way you do a stand-alone product. The difference is that IK looks for a configuration file (another plist) in your resource bundle. Create a new file in your project called <code>IKBundles.plist</code>. See the example in the IKExample app for more details. When IK receives successful purchase callbacks from StoreKit, it automatically activates all the product IDs associated with the given bundle product ID.
+With Scorched Earth 1.2, bundles were introduced. This feature allows you to package multiple in-app purchase products together as a bundle. Bundles are treated exactly the same as products. They each must have a unique product ID configured in iTunes Connect. You trigger a bundle purchase exactly the same way you do a stand-alone product. The difference is that IK looks for a configuration file (another plist) in your resource bundle. Create a new file in your project called <code>IKBundles.plist</code>. See the example in the IKExample app for more details. When IK receives successful purchase callbacks from StoreKit, it automatically activates all the product IDs associated with the given bundle product ID.
+
+h2. Consumables/Subscriptions
+
+All products are considered non-consumable unless they are explicitly listed in one of two plist configuration files - one for consumables <code>IKConsumableProducts.plist</code> and one for subscriptions <code>IKSubscriptionProducts.plist</code>. Consumables are NSStrings as elements of a NSArray. Subscriptions are NSString/NSNumber key-value pairs as objects in a NSDictionary, where the key is product ID and the value is subscription duration in seconds.  
 
 h1. Usage
 
@@ -63,6 +67,12 @@ h2. Product Activation
 BOOL isActivated = [InventoryKit productActivated:@"your.product.id"];
 </pre>
 
+* Time-limited Product Activation
+
+<pre>
+[InventoryKit activateProduct:@"your.product.id" expirationDate:yourDate];
+</pre>
+
 h2. Product Purchase
 
 <pre>
@@ -79,5 +89,5 @@ h1. Profit
 
 That's it. You're ready to make money. InventoryKit is free to use and improve, but I always accept donations. Please send them via PayPal to aubrey.goodman@gmail.com. Remember me when you make your millions.
 
-© 2009 Migrant Studios. All rights reserved. InventoryKit is made available through the MIT License.
+© 2009-2011 Migrant Studios. All rights reserved.
 
