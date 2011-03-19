@@ -8,10 +8,11 @@
 
 #import "InventoryKit.h"
 #import "IKPaymentTransactionObserver.h"
+#import "ObjectiveResourceConfig.h"
+#import "IKApiClient.h"
 
 
 @interface InventoryKit (private)
-
 +(IKPaymentTransactionObserver*)sharedObserver;
 +(void)restoreTransitionProducts;
 +(void)activateBundle:(NSString*)bundleKey;
@@ -25,16 +26,20 @@
 
 + (void)registerWithPaymentQueue
 {
-	
 	[[SKPaymentQueue defaultQueue] addTransactionObserver:[InventoryKit sharedObserver]];
 }
 
 + (void)purchaseProduct:(NSString*)productKey delegate:(id<IKPurchaseDelegate>)delegate
 {
-	NSLog(@"Submitting %@ to the payment queue",productKey);
+	[self purchaseProduct:productKey quantity:1 delegate:delegate];
+}
+
++ (void)purchaseProduct:(NSString*)productKey quantity:(int)quantity delegate:(id<IKPurchaseDelegate>)delegate
+{
 	[[InventoryKit sharedObserver] addPurchaseDelegate:delegate productIdentifier:productKey];
 	
-	SKPayment* tPayment = [SKPayment paymentWithProductIdentifier:productKey];
+	SKMutablePayment* tPayment = [SKMutablePayment paymentWithProductIdentifier:productKey];
+	tPayment.quantity = quantity;
 	[[SKPaymentQueue defaultQueue] addPayment:tPayment];
 }
 
@@ -83,6 +88,45 @@
 	static NSString* sApiToken;
 	[sApiToken release];
 	sApiToken = [aApiToken retain];
+	
+//	[ObjectiveResourceConfig setSite:@"http://enrollmint.com/"];
+	[ObjectiveResourceConfig setSite:@"http://local:3000/"];
+	[ObjectiveResourceConfig setUser:sApiToken];
+	[ObjectiveResourceConfig setPassword:@"x"];
+	[ObjectiveResourceConfig setResponseType:JSONResponse];
+	[ObjectiveResourceConfig setLocalClassesPrefix:@"IK"];
+
+	[IKApiClient syncProducts];
+}
+
++ (void)setCustomerEmail:(NSString *)aEmail
+{
+	static NSString* sCustomerEmail;
+	[sCustomerEmail release];
+	sCustomerEmail = [aEmail retain];
+	
+	[IKApiClient syncCustomer];
+}
+
++ (NSString*)customerEmail
+{
+	static NSString* sCustomerEmail;
+	return sCustomerEmail;
+}
+
++ (IKProduct*)productWithIdentifier:(NSString*)productKey
+{
+	NSArray* tProducts = [[NSUserDefaults standardUserDefaults] objectForKey:kProductsKey];
+	IKProduct* tProduct = nil;
+	for (NSDictionary* dict in tProducts) {
+		if( [productKey isEqualToString:[dict objectForKey:@"identifier"]] ) {
+			tProduct = [[[IKProduct alloc] init] autorelease];
+			tProduct.identifier = productKey;
+			tProduct.productId = [dict objectForKey:@"productId"];
+			break;
+		}
+	}
+	return tProduct;
 }
 
 + (void)useSandbox:(BOOL)sandbox
@@ -261,10 +305,25 @@
 	NSUserDefaults* tDefaults = [NSUserDefaults standardUserDefaults];
 	NSDictionary* tOldSubscriptionProducts = [tDefaults objectForKey:kSubscriptionProductsKey];
 	NSMutableDictionary* tSubscriptionProducts = [[NSMutableDictionary alloc] initWithDictionary:tOldSubscriptionProducts];
-	[tSubscriptionProducts setObject:aExpirationDate forKey:productKey];
+	NSMutableDictionary* tSubscriptionProductDeltas = [[NSMutableDictionary alloc] init];
+	
+	if( ! [[tSubscriptionProducts objectForKey:productKey] isEqual:aExpirationDate] ) {
+		[tSubscriptionProducts setObject:aExpirationDate forKey:productKey];
+		[tSubscriptionProductDeltas setObject:aExpirationDate forKey:productKey];
+	}
+	
 	[tDefaults setObject:tSubscriptionProducts forKey:kSubscriptionProductsKey];
 	[tDefaults synchronize];
+	
 	[tSubscriptionProducts release];
+	
+	static NSString* sApiToken;
+	if( sApiToken ) {
+		
+		[IKApiClient pushSubscriptions:nil];
+	}
+
+	[tSubscriptionProductDeltas release];
 }
 
 #pragma mark private

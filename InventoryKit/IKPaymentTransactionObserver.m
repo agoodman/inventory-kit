@@ -46,20 +46,15 @@
 			case SKPaymentTransactionStatePurchased:
 			case SKPaymentTransactionStateRestored:
 				[self activateProductOrSubscription:t.payment.productIdentifier purchaseDate:t.transactionDate quantity:t.payment.quantity];
-				[self fireProductPurchased:t.payment.productIdentifier success:true];
-				[[SKPaymentQueue defaultQueue] finishTransaction:t];
 				break;
 			case SKPaymentTransactionStateFailed:
-				[self fireProductPurchased:t.payment.productIdentifier success:false];
-				[[SKPaymentQueue defaultQueue] finishTransaction:t];
 				break;
 			default:
 				break;
 		}
 		
-		if( t.transactionState==SKPaymentTransactionStatePurchased || t.transactionState==SKPaymentTransactionStateRestored ) {
-			NSLog(@"Received transaction for %@",t.payment.productIdentifier);
-		}
+		[[SKPaymentQueue defaultQueue] finishTransaction:t];
+		[self fireProductPurchased:t.payment.productIdentifier success:(t.transactionState==SKPaymentTransactionStatePurchased || t.transactionState==SKPaymentTransactionStateRestored)];
 	}
 }
 

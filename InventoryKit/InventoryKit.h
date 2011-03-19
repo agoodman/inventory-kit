@@ -9,12 +9,14 @@
 #import <Foundation/Foundation.h>
 #import "IKPurchaseDelegate.h"
 #import "IKRestoreDelegate.h"
-#import "IKSubscriptionDelegate.h"
+#import "IKProduct.h"
 
 #define kTransitionProductsKey @"TransitionKitProductsKey"
 #define kActivatedProductsKey @"ActivatedProductsKey"
 #define kConsumableProductsKey @"ConsumableProductsKey"
 #define kSubscriptionProductsKey @"SubscriptionProductsKey"
+#define kProductsKey @"ProductsKey"
+#define kSubscriptionsKey @"SubscriptionsKey"
 
 
 @interface InventoryKit : NSObject {}
@@ -23,16 +25,17 @@
 
 +(void)registerWithPaymentQueue;
 +(void)purchaseProduct:(NSString*)productKey delegate:(id<IKPurchaseDelegate>)delegate;
++(void)purchaseProduct:(NSString*)productKey quantity:(int)quantity delegate:(id<IKPurchaseDelegate>)delegate;
 +(BOOL)productActivated:(NSString*)productKey;
 +(BOOL)isSubscriptionProduct:(NSString*)productKey;
 +(BOOL)isConsumableProduct:(NSString*)productKey;
 
-// reserved for future use
 +(void)setApiToken:(NSString*)aApiToken;
++(void)setCustomerEmail:(NSString*)aEmail;
++(IKProduct*)productWithIdentifier:(NSString*)productKey;
 
 // reserved for future use
 +(void)useSandbox:(BOOL)sandbox;
-
 
 #pragma mark TransitionKit
 
