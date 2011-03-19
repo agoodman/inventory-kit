@@ -26,6 +26,12 @@ Then, in Xcode, add the InventoryKit directory to your project. Once you've done
 #import "InventoryKit.h"
 </pre>
 
+Finally, add this in your ApplicationDelegate's <code>application:didFinishLaunchingWithOptions:</code> method:
+
+<pre>
+[InventoryKit registerWithPaymentQueue];
+</pre>
+
 h1. Configuration
 
 Once you have configured your in-app purchase products in iTunes Connect, you can use the product IDs with IK right away.
