@@ -2,13 +2,15 @@ h1. Overview
 
 InventoryKit is a free open source library that provides a synchronous (blocking) wrapper around Apple's StoreKit API for managing in-app purchases. It also supports programmatic activation of products, allowing you to offer unique and exciting features to your users. In games, for example, you can have an achievement that unlocks a feature the player would otherwise need to buy. It's also easy to include easter eggs that activate products. IK also makes it easy to prompt the user to buy a product, providing a simple asynchronous helper method and delegate interface.
 
-IK 1.0 only supports non-consumable purchases. Future releases aim to include support for consumables and subscriptions. 2.0 is in active development (master) and will include consumables (only stored on the device, not available on other platforms) and auto-renewable subscriptions (synced with third party service, stored locally for offline support).
+IK 1.0 only supports non-consumable purchases. Future releases aim to include support for consumables and subscriptions. 2.0 is in active development (master) and includes consumables (only stored on the device, not available on other platforms) and auto-renewable subscriptions (synced with "EnrollMint™":http://enrollmint.com, stored locally for offline support). As of 19 Mar 2011, Apple has not yet released auto-renewable subscriptions on iTunes Connect.
 
 h1. History
 
 IK was originally written as part of Scorched Earth ("App Store link":http://itunes.com/app/scorch) to transition between the "lite/paid" split app paradigm to the "free + in-app purchase" single app paradigm. The problem was the folks who bought the paid app should be able to continue to use the features they bought, while also taking advantages of updates. The strategy was to remove the "lite" version from the App Store and set the price of the paid version to zero (free). Then, the features from the paid version were made available as in-app upgrades. Clearly, the folks who already paid for the app would not be happy to be forced to pay again for the same features.
 
 IK solves this problem by providing a transition mechanism, whereby you issue an update to your paid app before you perform the conversion process described above. This update includes a plist describing all the products to be transitioned, as well as a single line of code to be included in your app delegate. Release an update with this change, then wait a month or two to allow your users to update before releasing a second update to enable the in-app purchases.
+
+In light of the Apple "press release":http://www.apple.com/pr/library/2011/02/15appstore.html from 15 Feb 2011, announcing auto-renewable subscriptions as in-app purchases, IK is being upgraded to include subscription support. This requires a server to manage the subscriptions in a central location that is accessible to all network-connected devices. EnrollMint™ ("http://enrollmint.com":http://enrollmint.com) was created to provide subscription management as a service. The service is free to use and charges 10% of your subscription revenues, billed quarterly. InventoryKit uses EnrollMint™ to sync subscription data to your user's mobile device, allowing developers to integrate subscriptions into their apps quickly, easily, and free.
 
 h1. Installation
 
@@ -22,6 +24,12 @@ Then, in Xcode, add the InventoryKit directory to your project. Once you've done
 
 <pre>
 #import "InventoryKit.h"
+</pre>
+
+Finally, add this in your ApplicationDelegate's <code>application:didFinishLaunchingWithOptions:</code> method:
+
+<pre>
+[InventoryKit registerWithPaymentQueue];
 </pre>
 
 h1. Configuration
@@ -75,8 +83,14 @@ BOOL isActivated = [InventoryKit productActivated:@"your.product.id"];
 
 h2. Product Purchase
 
+h3. Non-Consumables and Single Unit Consumables
 <pre>
 [InventoryKit purchaseProduct:@"your.product.id" delegate:yourDelegate];
+</pre>
+
+h3. Multiple Unit Consumables
+<pre>
+[InventoryKit purchaseProduct:@"your.product.id" quantity:3 delegate:yourDelegate];
 </pre>
 
 h2. Restore Purchases
@@ -87,7 +101,9 @@ h2. Restore Purchases
 
 h1. Profit
 
-That's it. You're ready to make money. InventoryKit is free to use and improve, but I always accept donations. Please send them via PayPal to aubrey.goodman@gmail.com. Remember me when you make your millions.
+That's it. You're ready to make money. InventoryKit is free to use and improve, but I always accept donations. Please send them via PayPal to aubrey.goodman@gmail.com. Remember me when you make your millions. 
+
+If you're using subscriptions with EnrollMint™, you'll receive an invoice quarterly. EnrollMint™ tracks subscription prices in real-time, eliminating the need for developers to update pricing on both iTunes Connect (ITC) and EnrollMint™. Simply set your prices in ITC and they will automatically be updated.
 
 © 2009-2011 Migrant Studios. All rights reserved.
 
