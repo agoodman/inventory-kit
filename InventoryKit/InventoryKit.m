@@ -8,11 +8,13 @@
 
 #import "InventoryKit.h"
 #import "IKPaymentTransactionObserver.h"
-#import "ObjectiveResourceConfig.h"
 #import "IKApiClient.h"
 
 
 @interface InventoryKit (private)
+static NSString* sApiToken;
+static NSString* sServerUrl;
+static NSString* sCustomerEmail;
 +(IKPaymentTransactionObserver*)sharedObserver;
 +(void)restoreTransitionProducts;
 +(void)activateBundle:(NSString*)bundleKey;
@@ -83,25 +85,42 @@
 	return NO;
 }
 
++ (void)setServerUrl:(NSString *)aServerUrl
+{
+	[sServerUrl release];
+	sServerUrl = [aServerUrl retain];
+}
+
++ (NSString*)serverUrl
+{
+	if( sServerUrl==nil ) {
+		sServerUrl = @"http://192.168.1.17:3000/";
+	}
+	return sServerUrl;
+}
+
 + (void)setApiToken:(NSString*)aApiToken
 {
-	static NSString* sApiToken;
 	[sApiToken release];
 	sApiToken = [aApiToken retain];
 	
 //	[ObjectiveResourceConfig setSite:@"http://enrollmint.com/"];
-	[ObjectiveResourceConfig setSite:@"http://local:3000/"];
-	[ObjectiveResourceConfig setUser:sApiToken];
-	[ObjectiveResourceConfig setPassword:@"x"];
-	[ObjectiveResourceConfig setResponseType:JSONResponse];
-	[ObjectiveResourceConfig setLocalClassesPrefix:@"IK"];
+//	[ObjectiveResourceConfig setSite:@"http://local:3000/"];
+//	[ObjectiveResourceConfig setUser:sApiToken];
+//	[ObjectiveResourceConfig setPassword:@"x"];
+//	[ObjectiveResourceConfig setResponseType:JSONResponse];
+//	[ObjectiveResourceConfig setLocalClassesPrefix:@"IK"];
 
 	[IKApiClient syncProducts];
 }
 
++ (NSString*)apiToken
+{
+	return sApiToken;
+}
+
 + (void)setCustomerEmail:(NSString *)aEmail
 {
-	static NSString* sCustomerEmail;
 	[sCustomerEmail release];
 	sCustomerEmail = [aEmail retain];
 	
@@ -110,7 +129,6 @@
 
 + (NSString*)customerEmail
 {
-	static NSString* sCustomerEmail;
 	return sCustomerEmail;
 }
 
@@ -242,6 +260,7 @@
 
 +(void)activateProduct:(NSString*)productKey quantity:(int)aQuantity
 {
+	NSLog(@"activating %@ (%dx)",productKey,aQuantity);
 	NSUserDefaults* tDefaults = [NSUserDefaults standardUserDefaults];
 	NSDictionary* tOldConsumableProducts = [tDefaults objectForKey:kConsumableProductsKey];
 	
@@ -317,9 +336,7 @@
 	
 	[tSubscriptionProducts release];
 	
-	static NSString* sApiToken;
 	if( sApiToken ) {
-		
 		[IKApiClient pushSubscriptions:nil];
 	}
 

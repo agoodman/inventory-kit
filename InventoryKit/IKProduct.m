@@ -18,6 +18,19 @@
 	return @"products";
 }
 
++ (IKProduct*)productWithDictionary:(NSDictionary*)dictionary
+{
+	NSLog(@"productWithDictionary: %@",dictionary);
+	IKProduct* tProduct = [[[IKProduct alloc] init] autorelease];
+	tProduct.productId = [dictionary objectForKey:@"id"];
+	tProduct.identifier = [dictionary objectForKey:@"identifier"];
+	tProduct.price = [dictionary objectForKey:@"price"];
+	tProduct.duration = [dictionary objectForKey:@"duration"];
+	tProduct.createdAt = [dictionary objectForKey:@"created_at"];
+	tProduct.updatedAt = [dictionary objectForKey:@"updated_at"];
+	return tProduct;
+}
+
 - (void)dealloc
 {
 	[productId release];

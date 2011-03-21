@@ -8,8 +8,8 @@
  */
 
 @protocol IKPurchaseDelegate
-
--(void)productWithKey:(NSString*)productKey success:(bool)success;
-
+-(void)purchaseDidStartForProductWithKey:(NSString*)productKey;
+-(void)purchaseDidFailForProductWithKey:(NSString*)productKey;
+-(void)purchaseDidCompleteForProductWithKey:(NSString*)productKey;
 @end
 

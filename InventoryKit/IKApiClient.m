@@ -12,6 +12,7 @@
 #import "IKSubscription.h"
 #import "IKCustomer.h"
 #import "InventoryKit.h"
+#import "ProductRequest.h"
 #import <CommonCrypto/CommonDigest.h>
 
 
@@ -47,25 +48,36 @@
 + (void)pullProducts
 {
 //	dispatch_async([self syncQueue], ^{
-		NSDictionary* tOldSubscriptionPrices = [NSDictionary dictionaryWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"IKSubscriptionPrices" ofType:@"plist"]];
-		NSMutableDictionary* tSubscriptionPrices = [[NSMutableDictionary alloc] initWithDictionary:tOldSubscriptionPrices];
-		NSMutableSet* tDeltas = [[NSMutableSet alloc] init];
 		
-		NSArray* tProducts = [IKProduct findAllRemote];
-		for (IKProduct* product in tProducts) {
-			NSNumber* tPrice = [tSubscriptionPrices objectForKey:product.identifier];
-			if( fabs([product.price floatValue]-[tPrice floatValue])>0.01 ) {
-				[tDeltas addObject:product.identifier];
-				[tSubscriptionPrices setObject:product.price forKey:product.identifier];
-			}
-		}
+		[ProductRequest requestProductsWithSuccessBlock:
+		 ^(NSArray* aProducts) {
+			 NSDictionary* tOldSubscriptionPrices = [NSDictionary dictionaryWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"IKSubscriptionPrices" ofType:@"plist"]];
+			 NSMutableDictionary* tSubscriptionPrices = [[NSMutableDictionary alloc] initWithDictionary:tOldSubscriptionPrices];
+			 NSMutableSet* tDeltas = [[NSMutableSet alloc] init];
+
+			 for (IKProduct* product in aProducts) {
+				 NSNumber* tPrice = [tSubscriptionPrices objectForKey:product.identifier];
+				 if( tPrice==nil ) continue;
+				 if( fabs([product.price floatValue]-[tPrice floatValue])>0.01 ) {
+					 [tDeltas addObject:product.identifier];
+					 [tSubscriptionPrices setObject:product.price forKey:product.identifier];
+				 }
+			 }
+			 
+			 if( tDeltas.count>0 ) {
+				 NSLog(@"saving products locally: %@",tSubscriptionPrices);
+				 [tSubscriptionPrices writeToFile:[[NSBundle mainBundle] pathForResource:@"IKSubscriptionPrices" ofType:@"plist"] atomically:YES];
+			 }
+			 
+			 [tSubscriptionPrices release];
+			 [tDeltas release];
+		 }
+										   failureBlock:
+		 ^{
+			 // do nothing on failure; this is a background process
+			 NSLog(@"unable to retrieve products");
+		 }];
 		
-		if( tDeltas.count>0 ) {
-			[tSubscriptionPrices writeToFile:[[NSBundle mainBundle] pathForResource:@"IKSubscriptionPrices" ofType:@"plist"] atomically:YES];
-		}
-		
-		[tSubscriptionPrices release];
-		[tDeltas release];
 //	});
 }
 

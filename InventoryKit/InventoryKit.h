@@ -30,7 +30,10 @@
 +(BOOL)isSubscriptionProduct:(NSString*)productKey;
 +(BOOL)isConsumableProduct:(NSString*)productKey;
 
++(void)setServerUrl:(NSString*)aServerUrl;
++(NSString*)serverUrl;
 +(void)setApiToken:(NSString*)aApiToken;
++(NSString*)apiToken;
 +(void)setCustomerEmail:(NSString*)aEmail;
 +(IKProduct*)productWithIdentifier:(NSString*)productKey;
 

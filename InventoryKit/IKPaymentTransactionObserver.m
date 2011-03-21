@@ -11,7 +11,9 @@
 
 
 @interface IKPaymentTransactionObserver (private)
--(void)fireProductPurchased:(NSString*)productIdentifier success:(BOOL)success;
+-(void)fireProductPurchaseStarted:(NSString*)productIdentifier;
+-(void)fireProductPurchaseFailed:(NSString*)productIdentifier;
+-(void)fireProductPurchaseCompleted:(NSString*)productIdentifier;
 -(void)activateProductOrSubscription:(NSString*)productIdentifier purchaseDate:(NSDate*)purchaseDate quantity:(int)quantity;
 @end
 
@@ -44,17 +46,24 @@
 	for (SKPaymentTransaction* t in transactions) {
 		switch (t.transactionState) {
 			case SKPaymentTransactionStatePurchased:
+				NSLog(@"transaction purchased: %@",t.transactionIdentifier);
 			case SKPaymentTransactionStateRestored:
+				NSLog(@"transaction restored: %@",t.transactionIdentifier);
 				[self activateProductOrSubscription:t.payment.productIdentifier purchaseDate:t.transactionDate quantity:t.payment.quantity];
+				[[SKPaymentQueue defaultQueue] finishTransaction:t];
+				[self fireProductPurchaseCompleted:t.payment.productIdentifier];
 				break;
 			case SKPaymentTransactionStateFailed:
+				NSLog(@"transaction failed: %@",t.transactionIdentifier);
+				[self fireProductPurchaseFailed:t.payment.productIdentifier];
+				break;
+			case SKPaymentTransactionStatePurchasing:
+				NSLog(@"transaction purchasing: %@",t.transactionIdentifier);	
+				[self fireProductPurchaseStarted:t.payment.productIdentifier];
 				break;
 			default:
 				break;
 		}
-		
-		[[SKPaymentQueue defaultQueue] finishTransaction:t];
-		[self fireProductPurchased:t.payment.productIdentifier success:(t.transactionState==SKPaymentTransactionStatePurchased || t.transactionState==SKPaymentTransactionStateRestored)];
 	}
 }
 
@@ -70,27 +79,50 @@
 
 #pragma mark private
 
-- (void)fireProductPurchased:(NSString*)productKey success:(BOOL)success
+- (void)fireProductPurchaseCompleted:(NSString*)productKey
 {
 	NSArray* tKeys = [[delegates keyEnumerator] allObjects];
 	if( [tKeys containsObject:productKey] ) {
 		id<IKPurchaseDelegate> tDelegate = [delegates objectForKey:productKey];
-		[tDelegate productWithKey:productKey success:success];
+		[tDelegate purchaseDidCompleteForProductWithKey:productKey];
 		[delegates removeObjectForKey:productKey];
+	}
+}
+
+- (void)fireProductPurchaseFailed:(NSString*)productKey
+{
+	NSArray* tKeys = [[delegates keyEnumerator] allObjects];
+	if( [tKeys containsObject:productKey] ) {
+		id<IKPurchaseDelegate> tDelegate = [delegates objectForKey:productKey];
+		[tDelegate purchaseDidFailForProductWithKey:productKey];
+		[delegates removeObjectForKey:productKey];
+	}
+}
+
+- (void)fireProductPurchaseStarted:(NSString*)productKey
+{
+	NSArray* tKeys = [[delegates keyEnumerator] allObjects];
+	if( [tKeys containsObject:productKey] ) {
+		id<IKPurchaseDelegate> tDelegate = [delegates objectForKey:productKey];
+		[tDelegate purchaseDidStartForProductWithKey:productKey];
 	}
 }
 
 - (void)activateProductOrSubscription:(NSString*)productIdentifier purchaseDate:(NSDate*)purchaseDate quantity:(int)quantity
 {
-	NSDictionary* tSubscriptionProducts = [NSDictionary dictionaryWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"IKSubscriptionProducts" ofType:@"plist"]];
-	if( [[tSubscriptionProducts allKeys] containsObject:productIdentifier] ) {
+	if( [InventoryKit isSubscriptionProduct:productIdentifier] ) {
 		// determine expiration date
+		NSDictionary* tSubscriptionProducts = [NSDictionary dictionaryWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"IKSubscriptionProducts" ofType:@"plist"]];
 		NSTimeInterval tInterval = [[tSubscriptionProducts objectForKey:productIdentifier] intValue];
 		NSDate* tExpirationDate = [purchaseDate dateByAddingTimeInterval:tInterval*quantity];
 		
 		[InventoryKit activateProduct:productIdentifier expirationDate:tExpirationDate];
 	}else if( [InventoryKit isConsumableProduct:productIdentifier] ) {
-		[InventoryKit activateProduct:productIdentifier quantity:quantity];
+		// read quantity data from the consumables plist
+		NSDictionary* tConsumableProducts = [NSDictionary dictionaryWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"IKConsumableProducts" ofType:@"plist"]];
+		int tQuantityPerProduct = [[tConsumableProducts objectForKey:productIdentifier] intValue];
+		int tQuantity = tQuantityPerProduct * quantity;
+		[InventoryKit activateProduct:productIdentifier quantity:tQuantity];
 	}else{
 		[InventoryKit activateProduct:productIdentifier];
 	}
