@@ -11,25 +11,33 @@
 #import "IKApiClient.h"
 
 
+static int ddLogLevel = LOG_LEVEL_VERBOSE;
+
 @implementation IKProductObserver
 
 - (void)productsRequest:(SKProductsRequest*)request didReceiveResponse:(SKProductsResponse*)response
 {
-	NSString* tPath = [[NSBundle mainBundle] pathForResource:@"IKSubscriptionPrices" ofType:@"plist"];
+	NSString* tPath = [[NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex:0] stringByAppendingPathComponent:@"IKSubscriptionPrices.plist"];
 	NSDictionary* tOldSubscriptionPrices = [NSDictionary dictionaryWithContentsOfFile:tPath];
 
 	NSMutableDictionary* tSubscriptionPrices = [[NSMutableDictionary alloc] initWithDictionary:tOldSubscriptionPrices];
 	NSMutableSet* tDeltas = [[NSMutableSet alloc] init];
 	
+	if( response.invalidProductIdentifiers.count>0 ) {
+		DDLogVerbose(@"invalid products: %@",response.invalidProductIdentifiers);
+	}
+	
 	for (SKProduct* product in response.products) {
 		NSLocale* tLocale = product.priceLocale;
+		DDLogVerbose(@"productId: %@, locale: %@, price: %@",product.productIdentifier,tLocale.localeIdentifier,product.price);
+		
 		// only use USD prices
-		if( [tLocale.localeIdentifier isEqualToString:@"en_US"] ) {
+		if( [tLocale.localeIdentifier isEqualToString:@"en_US@currency=USD"] ) {
 			float tDollars = [product.price floatValue];
 			NSNumber* tSubscriptionPrice = [tSubscriptionPrices objectForKey:product.productIdentifier];
 			if( fabs(tDollars-[tSubscriptionPrice floatValue])>0.01 ) {
 				[tDeltas addObject:product.productIdentifier];
-				[tSubscriptionPrices setObject:tSubscriptionPrice forKey:product.productIdentifier];
+				[tSubscriptionPrices setObject:[NSNumber numberWithFloat:tDollars] forKey:product.productIdentifier];
 			}
 		}
 	}
@@ -43,8 +51,12 @@
 			tProduct.price = [tSubscriptionPrices objectForKey:productId];
 			[tProducts addObject:tProduct];
 		}
-		[IKApiClient pushProducts:tProducts];
-		[tSubscriptionPrices writeToFile:tPath atomically:YES];
+		[IKApiClient updateProducts:tProducts];
+		if( [tSubscriptionPrices writeToFile:tPath atomically:YES] ) {
+			DDLogVerbose(@"Successfully updated local product prices");
+		}else{
+			DDLogVerbose(@"Unable to save product prices");
+		}
 		[tProducts release];
 	}
 	

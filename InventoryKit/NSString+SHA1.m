@@ -26,4 +26,9 @@
 	return tHex;
 }
 
+- (NSString*)secretKey
+{
+	return [[self hexdigest] substringToIndex:10];
+}
+
 @end

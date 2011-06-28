@@ -94,7 +94,7 @@ static NSString* sCustomerEmail;
 + (NSString*)serverUrl
 {
 	if( sServerUrl==nil ) {
-		sServerUrl = @"http://192.168.1.17:3000/";
+		sServerUrl = @"https://api.enrollmint.com/";
 	}
 	return sServerUrl;
 }

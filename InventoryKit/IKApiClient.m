@@ -14,7 +14,10 @@
 #import "InventoryKit.h"
 #import "ProductRequest.h"
 #import <CommonCrypto/CommonDigest.h>
+#import "NSString+SHA1.h"
 
+
+static int ddLogLevel = LOG_LEVEL_VERBOSE;
 
 @interface IKApiClient (private)
 +(IKProductObserver*)productObserver;
@@ -40,45 +43,56 @@
 
 + (void)updateProducts:(NSSet*)aProducts
 {
-	dispatch_async(dispatch_get_main_queue(), ^{ NSLog(@"TODO",@"push updated product data to server"); });
+	for (IKProduct* product in aProducts) {
+		ProductUpdateSuccessBlock tSuccess = ^(IKProduct* aProduct) {
+			DDLogVerbose(@"Product %@ updated successfully",aProduct.identifier);
+		};
+		
+		ProductFailureBlock tFailure = ^{
+			DDLogVerbose(@"Failed to update %@",product.identifier);
+		};
+		
+		[ProductRequest requestUpdateProduct:product successBlock:tSuccess failureBlock:tFailure];
+	}
 }
 
 #pragma mark private
 
 + (void)pullProducts
 {
-//	dispatch_async([self syncQueue], ^{
+	dispatch_async([self syncQueue], ^{
+		ProductIndexSuccessBlock tSuccess = ^(NSArray* aProducts) {
+			NSString* tPath = [[NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex:0] stringByAppendingPathComponent:@"IKSubscriptionPrices.plist"];
+			NSDictionary* tOldSubscriptionPrices = [NSDictionary dictionaryWithContentsOfFile:tPath];
+			NSMutableDictionary* tSubscriptionPrices = [[NSMutableDictionary alloc] initWithDictionary:tOldSubscriptionPrices];
+			NSMutableSet* tDeltas = [[NSMutableSet alloc] init];
+			
+			for (IKProduct* product in aProducts) {
+				NSNumber* tPrice = [tSubscriptionPrices objectForKey:product.identifier];
+				if( tPrice==nil ) continue;
+				if( fabs([product.price floatValue]-[tPrice floatValue])>0.01 ) {
+					[tDeltas addObject:product.identifier];
+					[tSubscriptionPrices setObject:product.price forKey:product.identifier];
+				}
+			}
+			
+			if( tDeltas.count>0 ) {
+				DDLogVerbose(@"saving products locally: %@",tSubscriptionPrices);
+				[tSubscriptionPrices writeToFile:tPath atomically:YES];
+			}
+			
+			[tSubscriptionPrices release];
+			[tDeltas release];
+		};
 		
-		[ProductRequest requestProductsWithSuccessBlock:
-		 ^(NSArray* aProducts) {
-			 NSDictionary* tOldSubscriptionPrices = [NSDictionary dictionaryWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"IKSubscriptionPrices" ofType:@"plist"]];
-			 NSMutableDictionary* tSubscriptionPrices = [[NSMutableDictionary alloc] initWithDictionary:tOldSubscriptionPrices];
-			 NSMutableSet* tDeltas = [[NSMutableSet alloc] init];
-
-			 for (IKProduct* product in aProducts) {
-				 NSNumber* tPrice = [tSubscriptionPrices objectForKey:product.identifier];
-				 if( tPrice==nil ) continue;
-				 if( fabs([product.price floatValue]-[tPrice floatValue])>0.01 ) {
-					 [tDeltas addObject:product.identifier];
-					 [tSubscriptionPrices setObject:product.price forKey:product.identifier];
-				 }
-			 }
-			 
-			 if( tDeltas.count>0 ) {
-				 NSLog(@"saving products locally: %@",tSubscriptionPrices);
-				 [tSubscriptionPrices writeToFile:[[NSBundle mainBundle] pathForResource:@"IKSubscriptionPrices" ofType:@"plist"] atomically:YES];
-			 }
-			 
-			 [tSubscriptionPrices release];
-			 [tDeltas release];
-		 }
-										   failureBlock:
-		 ^{
-			 // do nothing on failure; this is a background process
-			 NSLog(@"unable to retrieve products");
-		 }];
+		ProductFailureBlock tFailure = ^{
+			// do nothing on failure; this is a background process
+			DDLogVerbose(@"unable to retrieve products");
+		};
 		
-//	});
+		[ProductRequest requestProductsWithSuccessBlock:tSuccess failureBlock:tFailure];
+		
+	});
 }
 
 + (void)pullProductsFromAppStore
@@ -100,10 +114,10 @@
 	dispatch_async([self syncQueue], ^{
 		// generate secret key
 		NSString* tCustomerEmail = [InventoryKit customerEmail];
-		NSString* tSecretKey = [[NSString stringWithFormat:@"--%@--",tCustomerEmail] hexdigest];
+		NSString* tSecretKey = [[NSString stringWithFormat:@"--%@--",tCustomerEmail] secretKey];
 		
 		IKCustomer* tCustomer = [IKCustomer findRemote:tSecretKey];
-		NSLog(@"TODO: extract subscription data from customer");
+		DDLogVerbose(@"TODO: extract subscription data from customer");
 	});
 }
 
@@ -116,7 +130,7 @@
 	dispatch_async([self syncQueue], ^{
 		// generate secret key
 		NSString* tCustomerEmail = [InventoryKit customerEmail];
-		NSString* tSecretKey = [[NSString stringWithFormat:@"--%@--%@--",productKey,tCustomerEmail] hexdigest];
+		NSString* tSecretKey = [[NSString stringWithFormat:@"--%@--%@--",productKey,tCustomerEmail] secretKey];
 		
 		IKSubscription* tSubscription = [[[IKSubscription alloc] init] autorelease];
 

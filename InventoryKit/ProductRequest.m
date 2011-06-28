@@ -9,8 +9,10 @@
 #import "ProductRequest.h"
 #import "ASIHTTPRequest.h"
 #import "InventoryKit.h"
-#import "JSON.h"
+#import "SBJSON.h"
 
+
+static int ddLogLevel = LOG_LEVEL_VERBOSE;
 
 @implementation ProductRequest
 
@@ -18,8 +20,9 @@
 {
 	NSString* tServerUrl = [InventoryKit serverUrl];
 	NSString* tPath = [NSString stringWithFormat:@"%@products.json",tServerUrl];
+	DDLogVerbose(@"Retrieving products from %@",tPath);
 	NSURL* tUrl = [NSURL URLWithString:tPath];
-	__block ASIHTTPRequest* tRequest = [ASIHTTPRequest requestWithURL:tUrl];
+	ASIHTTPRequest* tRequest = [ASIHTTPRequest requestWithURL:tUrl];
 	[tRequest addBasicAuthenticationHeaderWithUsername:[InventoryKit apiToken] andPassword:@"x"];
 	[tRequest setCompletionBlock:^ {
 		int tStatusCode = [tRequest responseStatusCode];
@@ -46,13 +49,16 @@
 + (void)requestUpdateProduct:(IKProduct *)aProduct successBlock:(ProductUpdateSuccessBlock)successBlock failureBlock:(ProductFailureBlock)failureBlock
 {
 	NSString* tServerUrl = [InventoryKit serverUrl];
-	NSString* tPath = [NSString stringWithFormat:@"%@product/%d.json",tServerUrl,[aProduct.productId intValue]];
+	NSString* tPath = [NSString stringWithFormat:@"%@products/%@.json",tServerUrl,[[NSString stringWithFormat:@"--%@--",aProduct.identifier] secretKey]];
+	DDLogVerbose(@"Updating product at %@",tPath);
+	
 	NSURL* tUrl = [NSURL URLWithString:tPath];
-	__block ASIHTTPRequest* tRequest = [ASIHTTPRequest requestWithURL:tUrl];
+	ASIHTTPRequest* tRequest = [ASIHTTPRequest requestWithURL:tUrl];
+	[tRequest addBasicAuthenticationHeaderWithUsername:[InventoryKit apiToken] andPassword:@"x"];
 	[tRequest setRequestMethod:@"PUT"];
 	
 	NSDictionary* tProductDict = [aProduct dictionaryWithValuesForKeys:[NSArray arrayWithObject:@"price"]];
-	NSString* tJson = [tProductDict JSONRepresentation];
+	NSString* tJson = [[NSDictionary dictionaryWithObject:tProductDict forKey:@"product"] JSONRepresentation];
 	[tRequest addRequestHeader:@"Content-Type" value:@"application/json"];
 	[tRequest appendPostData:[tJson dataUsingEncoding:NSISOLatin1StringEncoding]];
 	

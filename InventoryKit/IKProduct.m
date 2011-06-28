@@ -20,7 +20,6 @@
 
 + (IKProduct*)productWithDictionary:(NSDictionary*)dictionary
 {
-	NSLog(@"productWithDictionary: %@",dictionary);
 	IKProduct* tProduct = [[[IKProduct alloc] init] autorelease];
 	tProduct.productId = [dictionary objectForKey:@"id"];
 	tProduct.identifier = [dictionary objectForKey:@"identifier"];

@@ -12,5 +12,6 @@
 @interface NSString (SHA1)
 
 -(NSString*)hexdigest;
+-(NSString*)secretKey;
 
 @end
