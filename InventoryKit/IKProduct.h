@@ -29,3 +29,6 @@
 @property (retain) NSDate* updatedAt;
 
 @end
+
+
+typedef void (^IKProductBlock)(IKProduct*);

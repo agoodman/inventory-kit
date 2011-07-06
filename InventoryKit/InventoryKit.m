@@ -11,10 +11,13 @@
 #import "IKApiClient.h"
 
 
+static int ddLogLevel = LOG_LEVEL_VERBOSE;
+
 @interface InventoryKit (private)
 static NSString* sApiToken;
 static NSString* sServerUrl;
 static NSString* sCustomerEmail;
+static BOOL sUseSandbox;
 +(IKPaymentTransactionObserver*)sharedObserver;
 +(void)restoreTransitionProducts;
 +(void)activateBundle:(NSString*)bundleKey;
@@ -59,7 +62,7 @@ static NSString* sCustomerEmail;
 				tExists = [tActivatedProducts containsObject:productKey];
 			}
 			@catch (NSException * e) {
-				NSLog(@"InventoryKit: Encountered unexpected object");
+				DDLogVerbose(@"InventoryKit: Encountered unexpected object");
 			}
 		}
 		
@@ -85,18 +88,15 @@ static NSString* sCustomerEmail;
 	return NO;
 }
 
-+ (void)setServerUrl:(NSString *)aServerUrl
-{
-	[sServerUrl release];
-	sServerUrl = [aServerUrl retain];
-}
-
 + (NSString*)serverUrl
 {
-	if( sServerUrl==nil ) {
+	if( sUseSandbox ) {
+		sServerUrl = @"https://sandbox.enrollmint.com/";
+	}else{
 		sServerUrl = @"https://api.enrollmint.com/";
 	}
-	return sServerUrl;
+	NSString* tServerUrl = [NSString stringWithFormat:@"%@apps/%@/",sServerUrl,[[NSBundle mainBundle] bundleIdentifier]];
+	return tServerUrl;
 }
 
 + (void)setApiToken:(NSString*)aApiToken
@@ -149,12 +149,12 @@ static NSString* sCustomerEmail;
 
 + (void)useSandbox:(BOOL)sandbox
 {
-	static BOOL sUseSandbox;
 	sUseSandbox = sandbox;
 }
 
 + (void)deactivateProduct:(NSString *)productKey
 {
+	DDLogVerbose(@"IK Dectivating %@",productKey);
 	NSUserDefaults* tDefaults = [NSUserDefaults standardUserDefaults];
 
 	if( [self isSubscriptionProduct:productKey] ) {
@@ -189,7 +189,7 @@ static NSString* sCustomerEmail;
 		NSString* pathToProductKeys = [[NSBundle mainBundle] pathForResource:@"TransitionProducts" ofType:@"plist"];
 		tTransitionProducts = [NSArray arrayWithContentsOfFile:pathToProductKeys];
 		if( tTransitionProducts==nil ) {
-			NSLog(@"Unable to resolve products from file: TransitionProducts.plist");
+			DDLogWarn(@"Unable to resolve products from file: TransitionProducts.plist");
 		}else{
 			[[NSUserDefaults standardUserDefaults] setObject:tTransitionProducts forKey:kTransitionProductsKey];
 			[[NSUserDefaults standardUserDefaults] synchronize];
@@ -201,6 +201,7 @@ static NSString* sCustomerEmail;
 
 + (void)activateProduct:(NSString*)productKey
 {
+	DDLogVerbose(@"IK Activating %@",productKey);
 	if( [productKey hasSuffix:@"bundle"] ) {
 		[self activateBundle:productKey];
 	}else{
@@ -238,7 +239,7 @@ static NSString* sCustomerEmail;
 + (void)restoreProducts:(id<IKRestoreDelegate>)delegate
 {
 	if( [SKPaymentQueue canMakePayments] ) {
-		NSLog(@"Requesting product restore");
+		DDLogVerbose(@"Requesting product restore");
 		[[InventoryKit sharedObserver] setRestoreDelegate:delegate];
 		
 		[[NSUserDefaults standardUserDefaults] removeObjectForKey:kActivatedProductsKey];
@@ -260,7 +261,7 @@ static NSString* sCustomerEmail;
 
 +(void)activateProduct:(NSString*)productKey quantity:(int)aQuantity
 {
-	NSLog(@"activating %@ (%dx)",productKey,aQuantity);
+	DDLogVerbose(@"IK Activating %dea of %@",productKey,aQuantity);
 	NSUserDefaults* tDefaults = [NSUserDefaults standardUserDefaults];
 	NSDictionary* tOldConsumableProducts = [tDefaults objectForKey:kConsumableProductsKey];
 	
@@ -303,6 +304,7 @@ static NSString* sCustomerEmail;
 
 +(void)consumeProduct:(NSString*)productKey quantity:(int)aQuantity
 {
+	DDLogVerbose(@"IK Consuming %dea of %@",aQuantity,productKey);
 	NSUserDefaults* tDefaults = [NSUserDefaults standardUserDefaults];
 	NSDictionary* tOldConsumableProducts = [tDefaults objectForKey:kConsumableProductsKey];
 	
@@ -321,26 +323,19 @@ static NSString* sCustomerEmail;
 
 +(void)activateProduct:(NSString*)productKey expirationDate:(NSDate*)aExpirationDate
 {
+	DDLogVerbose(@"IK Activating %@ with expiration %@",productKey,aExpirationDate);
 	NSUserDefaults* tDefaults = [NSUserDefaults standardUserDefaults];
 	NSDictionary* tOldSubscriptionProducts = [tDefaults objectForKey:kSubscriptionProductsKey];
 	NSMutableDictionary* tSubscriptionProducts = [[NSMutableDictionary alloc] initWithDictionary:tOldSubscriptionProducts];
-	NSMutableDictionary* tSubscriptionProductDeltas = [[NSMutableDictionary alloc] init];
 	
 	if( ! [[tSubscriptionProducts objectForKey:productKey] isEqual:aExpirationDate] ) {
 		[tSubscriptionProducts setObject:aExpirationDate forKey:productKey];
-		[tSubscriptionProductDeltas setObject:aExpirationDate forKey:productKey];
 	}
 	
 	[tDefaults setObject:tSubscriptionProducts forKey:kSubscriptionProductsKey];
 	[tDefaults synchronize];
 	
 	[tSubscriptionProducts release];
-	
-	if( sApiToken ) {
-		[IKApiClient pushSubscriptions:nil];
-	}
-
-	[tSubscriptionProductDeltas release];
 }
 
 #pragma mark private
@@ -356,6 +351,7 @@ static NSString* sCustomerEmail;
 
 + (void)restoreTransitionProducts
 {
+	DDLogVerbose(@"IK Restoring transition products");
 	NSUserDefaults* tDefaults = [NSUserDefaults standardUserDefaults];
 	NSArray* tActivatedProducts = [tDefaults objectForKey:kActivatedProductsKey];
 	if( tActivatedProducts==nil ) {

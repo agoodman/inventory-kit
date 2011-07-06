@@ -15,6 +15,8 @@
 #import "ProductRequest.h"
 #import <CommonCrypto/CommonDigest.h>
 #import "NSString+SHA1.h"
+#import "ReceiptRequest.h"
+#import "CustomerRequest.h"
 
 
 static int ddLogLevel = LOG_LEVEL_VERBOSE;
@@ -25,6 +27,7 @@ static int ddLogLevel = LOG_LEVEL_VERBOSE;
 +(void)pullProductsFromAppStore;
 +(void)pullProducts;
 +(void)pullCustomer;
++(void)createCustomer;
 @end
 
 
@@ -44,16 +47,29 @@ static int ddLogLevel = LOG_LEVEL_VERBOSE;
 + (void)updateProducts:(NSSet*)aProducts
 {
 	for (IKProduct* product in aProducts) {
-		ProductUpdateSuccessBlock tSuccess = ^(IKProduct* aProduct) {
+		IKProductBlock tSuccess = ^(IKProduct* aProduct) {
 			DDLogVerbose(@"Product %@ updated successfully",aProduct.identifier);
 		};
 		
-		ProductFailureBlock tFailure = ^{
-			DDLogVerbose(@"Failed to update %@",product.identifier);
+		IKErrorBlock tFailure = ^(int aStatusCode, NSString* aResponse) {
+			DDLogVerbose(@"Failed to update %@, error: %@",product.identifier,aResponse);
 		};
 		
 		[ProductRequest requestUpdateProduct:product successBlock:tSuccess failureBlock:tFailure];
 	}
+}
+
++ (void)processReceipt:(NSData*)aReceipt
+{
+	IKBasicBlock tSuccess = ^{
+		DDLogVerbose(@"receipt successfully processed");
+	};
+	
+	IKErrorBlock tFailure = ^(int aStatusCode, NSString* aResponse) {
+		DDLogVerbose(@"unable to process receipt");
+	};
+	
+	[ReceiptRequest requestCreateReceipt:aReceipt successBlock:tSuccess failureBlock:tFailure];
 }
 
 #pragma mark private
@@ -61,7 +77,7 @@ static int ddLogLevel = LOG_LEVEL_VERBOSE;
 + (void)pullProducts
 {
 	dispatch_async([self syncQueue], ^{
-		ProductIndexSuccessBlock tSuccess = ^(NSArray* aProducts) {
+		IKArrayBlock tSuccess = ^(NSArray* aProducts) {
 			NSString* tPath = [[NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex:0] stringByAppendingPathComponent:@"IKSubscriptionPrices.plist"];
 			NSDictionary* tOldSubscriptionPrices = [NSDictionary dictionaryWithContentsOfFile:tPath];
 			NSMutableDictionary* tSubscriptionPrices = [[NSMutableDictionary alloc] initWithDictionary:tOldSubscriptionPrices];
@@ -85,7 +101,7 @@ static int ddLogLevel = LOG_LEVEL_VERBOSE;
 			[tDeltas release];
 		};
 		
-		ProductFailureBlock tFailure = ^{
+		IKErrorBlock tFailure = ^(int aStatusCode, NSString* aResponse) {
 			// do nothing on failure; this is a background process
 			DDLogVerbose(@"unable to retrieve products");
 		};
@@ -114,11 +130,39 @@ static int ddLogLevel = LOG_LEVEL_VERBOSE;
 	dispatch_async([self syncQueue], ^{
 		// generate secret key
 		NSString* tCustomerEmail = [InventoryKit customerEmail];
-		NSString* tSecretKey = [[NSString stringWithFormat:@"--%@--",tCustomerEmail] secretKey];
 		
-		IKCustomer* tCustomer = [IKCustomer findRemote:tSecretKey];
-		DDLogVerbose(@"TODO: extract subscription data from customer");
+		IKCustomerBlock tSuccess = ^(IKCustomer* aCustomer) {
+			DDLogVerbose(@"Received customer: %@",aCustomer);
+			for (IKSubscription* tSubscription in aCustomer.subscriptions) {
+				[InventoryKit activateProduct:tSubscription.productIdentifier expirationDate:tSubscription.expiresOn];
+			}
+		};
+		
+		IKErrorBlock tFailure = ^(int aStatusCode, NSString* aResponse) {
+			DDLogVerbose(@"Customer does not exist.");
+			[self createCustomer];
+		};
+		
+		[CustomerRequest requestCustomerByEmail:tCustomerEmail success:tSuccess failure:tFailure];
 	});
+}
+
++ (void)createCustomer
+{
+	// generate secret key
+	NSString* tCustomerEmail = [InventoryKit customerEmail];
+
+	IKCustomerBlock tSuccess = ^(IKCustomer* aCustomer) {
+		// do nothing
+		DDLogVerbose(@"Created customer %@",aCustomer.email);
+	};
+	
+	IKErrorBlock tFailure = ^(int aStatusCode, NSString* aResponse) {
+		// do nothing
+		DDLogVerbose(@"Failed to create customer %@",tCustomerEmail);
+	};
+	
+	[CustomerRequest requestCreateCustomerByEmail:tCustomerEmail success:tSuccess failure:tFailure];
 }
 
 /*

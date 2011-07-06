@@ -17,5 +17,6 @@
 +(void)syncCustomer;
 +(void)syncSubscriptions;
 +(void)updateProducts:(NSSet*)products;
++(void)processReceipt:(NSData*)aReceipt;
 
 @end

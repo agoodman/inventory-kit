@@ -8,6 +8,7 @@
 
 #import "IKPaymentTransactionObserver.h"
 #import "InventoryKit.h"
+#import "IKApiClient.h"
 
 
 @interface IKPaymentTransactionObserver (private)
@@ -50,11 +51,13 @@
 			case SKPaymentTransactionStateRestored:
 				NSLog(@"transaction restored: %@",t.transactionIdentifier);
 				[self activateProductOrSubscription:t.payment.productIdentifier purchaseDate:t.transactionDate quantity:t.payment.quantity];
+				[IKApiClient processReceipt:t.transactionReceipt];
 				[[SKPaymentQueue defaultQueue] finishTransaction:t];
 				[self fireProductPurchaseCompleted:t.payment.productIdentifier];
 				break;
 			case SKPaymentTransactionStateFailed:
 				NSLog(@"transaction failed: %@",t.transactionIdentifier);
+				[[SKPaymentQueue defaultQueue] finishTransaction:t];
 				[self fireProductPurchaseFailed:t.payment.productIdentifier];
 				break;
 			case SKPaymentTransactionStatePurchasing:

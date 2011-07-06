@@ -16,7 +16,7 @@ static int ddLogLevel = LOG_LEVEL_VERBOSE;
 
 @implementation ProductRequest
 
-+ (void)requestProductsWithSuccessBlock:(ProductIndexSuccessBlock)successBlock failureBlock:(ProductFailureBlock)failureBlock
++ (void)requestProductsWithSuccessBlock:(IKArrayBlock)successBlock failureBlock:(IKErrorBlock)failureBlock
 {
 	NSString* tServerUrl = [InventoryKit serverUrl];
 	NSString* tPath = [NSString stringWithFormat:@"%@products.json",tServerUrl];
@@ -37,16 +37,20 @@ static int ddLogLevel = LOG_LEVEL_VERBOSE;
 			successBlock(tProducts);
 			[tProducts release];
 		}else{
-			failureBlock();
+			int tStatusCode = [tRequest responseStatusCode];
+			NSString* tResponse = [tRequest responseString];
+			failureBlock(tStatusCode, tResponse);
 		}
 	}];
 	[tRequest setFailedBlock:^ {
-		failureBlock();
+		int tStatusCode = [tRequest responseStatusCode];
+		NSString* tResponse = [tRequest responseString];
+		failureBlock(tStatusCode, tResponse);
 	}];
-	[tRequest startAsynchronous];
+	[tRequest startSynchronous];
 }
 
-+ (void)requestUpdateProduct:(IKProduct *)aProduct successBlock:(ProductUpdateSuccessBlock)successBlock failureBlock:(ProductFailureBlock)failureBlock
++ (void)requestUpdateProduct:(IKProduct *)aProduct successBlock:(IKProductBlock)successBlock failureBlock:(IKErrorBlock)failureBlock
 {
 	NSString* tServerUrl = [InventoryKit serverUrl];
 	NSString* tPath = [NSString stringWithFormat:@"%@products/%@.json",tServerUrl,[[NSString stringWithFormat:@"--%@--",aProduct.identifier] secretKey]];
@@ -67,11 +71,15 @@ static int ddLogLevel = LOG_LEVEL_VERBOSE;
 		if( tStatusCode==200 ) {
 			successBlock(aProduct);
 		}else{
-			failureBlock();
+			int tStatusCode = [tRequest responseStatusCode];
+			NSString* tResponse = [tRequest responseString];
+			failureBlock(tStatusCode, tResponse);
 		}
 	}];
 	[tRequest setFailedBlock:^ {
-		failureBlock();
+		int tStatusCode = [tRequest responseStatusCode];
+		NSString* tResponse = [tRequest responseString];
+		failureBlock(tStatusCode, tResponse);
 	}];
 	[tRequest startAsynchronous];
 }

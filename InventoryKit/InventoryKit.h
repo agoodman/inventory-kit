@@ -19,6 +19,10 @@
 #define kSubscriptionsKey @"SubscriptionsKey"
 
 
+typedef void (^IKBasicBlock)(void);
+typedef void (^IKArrayBlock)(NSArray*);
+typedef void (^IKErrorBlock)(int,NSString*);
+
 @interface InventoryKit : NSObject {}
 
 #pragma mark Shared

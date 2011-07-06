@@ -11,7 +11,7 @@
 
 @implementation IKSubscription
 
-@synthesize subscriptionId, customerId, productId, expiresOn;
+@synthesize productIdentifier, expiresOn;
 
 + (NSString*)getRemoteCollectionName
 {
@@ -20,9 +20,7 @@
 
 - (void)dealloc
 {
-	[subscriptionId release];
-	[customerId release];
-	[productId release];
+	[productIdentifier release];
 	[expiresOn release];
 	[super dealloc];
 }
