@@ -132,15 +132,16 @@ static int ddLogLevel = LOG_LEVEL_VERBOSE;
 		NSString* tCustomerEmail = [InventoryKit customerEmail];
 		
 		IKCustomerBlock tSuccess = ^(IKCustomer* aCustomer) {
-			DDLogVerbose(@"Received customer: %@",aCustomer);
 			for (IKSubscription* tSubscription in aCustomer.subscriptions) {
-				[InventoryKit activateProduct:tSubscription.productIdentifier expirationDate:tSubscription.expiresOn];
+				[InventoryKit activateProduct:tSubscription.productIdentifier expirationDate:tSubscription.expirationDate];
 			}
 		};
 		
 		IKErrorBlock tFailure = ^(int aStatusCode, NSString* aResponse) {
-			DDLogVerbose(@"Customer does not exist.");
-			[self createCustomer];
+			if( aStatusCode==404 ) {
+				DDLogVerbose(@"Customer does not exist.");
+				[self createCustomer];
+			}
 		};
 		
 		[CustomerRequest requestCustomerByEmail:tCustomerEmail success:tSuccess failure:tFailure];

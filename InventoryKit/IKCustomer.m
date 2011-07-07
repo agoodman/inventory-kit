@@ -8,6 +8,7 @@
 
 #import "IKCustomer.h"
 #import "IKSubscription.h"
+#import "ObjectiveResourceDateFormatter.h"
 
 
 static int ddLogLevel = LOG_LEVEL_VERBOSE;
@@ -31,7 +32,7 @@ static int ddLogLevel = LOG_LEVEL_VERBOSE;
 	for (NSDictionary* dict in tSubscriptionDicts) {
 		IKSubscription* tSub = [[[IKSubscription alloc] init] autorelease];
 		tSub.productIdentifier = [dict objectForKey:@"product_identifier"];
-		tSub.expiresOn = [dict objectForKey:@"expires_on"];
+		tSub.expirationDate = [ObjectiveResourceDateFormatter parseDateTime:[dict objectForKey:@"expiration_date"]];
 		[tSubscriptions addObject:tSub];
 	}
 	tCustomer.subscriptions = tSubscriptions;

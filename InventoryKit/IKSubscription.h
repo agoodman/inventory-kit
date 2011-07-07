@@ -12,11 +12,11 @@
 @interface IKSubscription : NSObject {
 
 	NSString* productIdentifier;
-	NSDate* expiresOn;
+	NSDate* expirationDate;
 	
 }
 
 @property (retain) NSString* productIdentifier;
-@property (retain) NSDate* expiresOn;
+@property (retain) NSDate* expirationDate;
 
 @end

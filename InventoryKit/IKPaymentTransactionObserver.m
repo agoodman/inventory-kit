@@ -11,6 +11,8 @@
 #import "IKApiClient.h"
 
 
+static int ddLogLevel = LOG_LEVEL_VERBOSE;
+
 @interface IKPaymentTransactionObserver (private)
 -(void)fireProductPurchaseStarted:(NSString*)productIdentifier;
 -(void)fireProductPurchaseFailed:(NSString*)productIdentifier;
@@ -47,21 +49,21 @@
 	for (SKPaymentTransaction* t in transactions) {
 		switch (t.transactionState) {
 			case SKPaymentTransactionStatePurchased:
-				NSLog(@"transaction purchased: %@",t.transactionIdentifier);
+				DDLogVerbose(@"transaction purchased: %@",t.transactionIdentifier);
 			case SKPaymentTransactionStateRestored:
-				NSLog(@"transaction restored: %@",t.transactionIdentifier);
+				DDLogVerbose(@"transaction restored: %@",t.transactionIdentifier);
 				[self activateProductOrSubscription:t.payment.productIdentifier purchaseDate:t.transactionDate quantity:t.payment.quantity];
 				[IKApiClient processReceipt:t.transactionReceipt];
 				[[SKPaymentQueue defaultQueue] finishTransaction:t];
 				[self fireProductPurchaseCompleted:t.payment.productIdentifier];
 				break;
 			case SKPaymentTransactionStateFailed:
-				NSLog(@"transaction failed: %@",t.transactionIdentifier);
+				DDLogVerbose(@"transaction failed - identifier: %@, date: %@, ",t.transactionIdentifier,t.transactionDate);
 				[[SKPaymentQueue defaultQueue] finishTransaction:t];
 				[self fireProductPurchaseFailed:t.payment.productIdentifier];
 				break;
 			case SKPaymentTransactionStatePurchasing:
-				NSLog(@"transaction purchasing: %@",t.transactionIdentifier);	
+				DDLogVerbose(@"transaction purchasing: %@",t.transactionIdentifier);	
 				[self fireProductPurchaseStarted:t.payment.productIdentifier];
 				break;
 			default:
@@ -116,7 +118,8 @@
 	if( [InventoryKit isSubscriptionProduct:productIdentifier] ) {
 		// determine expiration date
 		NSDictionary* tSubscriptionProducts = [NSDictionary dictionaryWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"IKSubscriptionProducts" ofType:@"plist"]];
-		NSTimeInterval tInterval = [[tSubscriptionProducts objectForKey:productIdentifier] intValue];
+		NSDictionary* tSubscription = [tSubscriptionProducts objectForKey:productIdentifier];
+		NSTimeInterval tInterval = [[tSubscription objectForKey:@"duration"] intValue];
 		NSDate* tExpirationDate = [purchaseDate dateByAddingTimeInterval:tInterval*quantity];
 		
 		[InventoryKit activateProduct:productIdentifier expirationDate:tExpirationDate];
