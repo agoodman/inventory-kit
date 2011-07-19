@@ -21,6 +21,7 @@
 
 typedef void (^IKBasicBlock)(void);
 typedef void (^IKArrayBlock)(NSArray*);
+typedef void (^IKStringBlock)(NSString*);
 typedef void (^IKErrorBlock)(int,NSString*);
 
 @interface InventoryKit : NSObject {}
@@ -28,31 +29,40 @@ typedef void (^IKErrorBlock)(int,NSString*);
 #pragma mark Shared
 
 +(void)registerWithPaymentQueue;
-+(void)purchaseProduct:(NSString*)productKey delegate:(id<IKPurchaseDelegate>)delegate;
-+(void)purchaseProduct:(NSString*)productKey quantity:(int)quantity delegate:(id<IKPurchaseDelegate>)delegate;
 +(BOOL)productActivated:(NSString*)productKey;
 +(BOOL)isSubscriptionProduct:(NSString*)productKey;
 +(BOOL)isConsumableProduct:(NSString*)productKey;
-
-+(void)setServerUrl:(NSString*)aServerUrl;
-+(NSString*)serverUrl;
-+(void)setApiToken:(NSString*)aApiToken;
-+(NSString*)apiToken;
-+(void)setCustomerEmail:(NSString*)aEmail;
 +(IKProduct*)productWithIdentifier:(NSString*)productKey;
-
-// reserved for future use
-+(void)useSandbox:(BOOL)sandbox;
 
 #pragma mark TransitionKit
 
 +(void)prepareTransitionProducts;
 
+#pragma mark EnrollMint
+
++(void)useSandbox:(BOOL)sandbox;
++(NSString*)serverUrl;
++(void)setApiToken:(NSString*)aApiToken;
++(NSString*)apiToken;
++(void)setCustomerEmail:(NSString*)aEmail;
++(NSString*)customerEmail;
+
+#pragma mark Purchasing delegate-based
+
++(void)purchaseProduct:(NSString*)productKey delegate:(id<IKPurchaseDelegate>)delegate;
++(void)purchaseProduct:(NSString*)productKey quantity:(int)quantity delegate:(id<IKPurchaseDelegate>)delegate;
++(void)restoreProducts:(id<IKRestoreDelegate>)delegate;
+
+#pragma mark Purchasing block-based
+
++(void)purchaseProduct:(NSString *)productKey startBlock:(IKBasicBlock)aStartBlock successBlock:(IKStringBlock)successBlock failureBlock:(IKErrorBlock)failureBlock;
++(void)purchaseProduct:(NSString *)productKey quantity:(int)quantity startBlock:(IKBasicBlock)aStartBlock successBlock:(IKStringBlock)successBlock failureBlock:(IKErrorBlock)failureBlock;
++(void)restoreProductsWithSuccessBlock:(IKBasicBlock)successBlock failureBlock:(IKErrorBlock)failureBlock;
+
 #pragma mark Non-Consumables
 
 +(void)activateProduct:(NSString*)productKey;
 +(void)deactivateProduct:(NSString*)productKey;
-+(void)restoreProducts:(id<IKRestoreDelegate>)delegate;
 
 #pragma mark Consumables
 

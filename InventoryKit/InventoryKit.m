@@ -20,8 +20,10 @@ static NSString* sCustomerEmail;
 static BOOL sUseSandbox;
 +(IKPaymentTransactionObserver*)sharedObserver;
 +(void)restoreTransitionProducts;
++(void)restoreProducts;
 +(void)activateBundle:(NSString*)bundleKey;
 +(BOOL)subscriptionActive:(NSString*)productKey;
++(void)queuePaymentForProductIdentifier:(NSString*)productKey quantity:(int)quantity;
 @end
 
 
@@ -32,20 +34,6 @@ static BOOL sUseSandbox;
 + (void)registerWithPaymentQueue
 {
 	[[SKPaymentQueue defaultQueue] addTransactionObserver:[InventoryKit sharedObserver]];
-}
-
-+ (void)purchaseProduct:(NSString*)productKey delegate:(id<IKPurchaseDelegate>)delegate
-{
-	[self purchaseProduct:productKey quantity:1 delegate:delegate];
-}
-
-+ (void)purchaseProduct:(NSString*)productKey quantity:(int)quantity delegate:(id<IKPurchaseDelegate>)delegate
-{
-	[[InventoryKit sharedObserver] addPurchaseDelegate:delegate productIdentifier:productKey];
-	
-	SKMutablePayment* tPayment = [SKMutablePayment paymentWithProductIdentifier:productKey];
-	tPayment.quantity = quantity;
-	[[SKPaymentQueue defaultQueue] addPayment:tPayment];
 }
 
 + (BOOL)productActivated:(NSString*)productKey
@@ -88,50 +76,6 @@ static BOOL sUseSandbox;
 	return NO;
 }
 
-+ (NSString*)serverUrl
-{
-	if( sUseSandbox ) {
-		sServerUrl = @"https://sandbox.enrollmint.com/";
-	}else{
-		sServerUrl = @"https://api.enrollmint.com/";
-	}
-	NSString* tServerUrl = [NSString stringWithFormat:@"%@apps/%@/",sServerUrl,[[NSBundle mainBundle] bundleIdentifier]];
-	return tServerUrl;
-}
-
-+ (void)setApiToken:(NSString*)aApiToken
-{
-	[sApiToken release];
-	sApiToken = [aApiToken retain];
-	
-//	[ObjectiveResourceConfig setSite:@"http://enrollmint.com/"];
-//	[ObjectiveResourceConfig setSite:@"http://local:3000/"];
-//	[ObjectiveResourceConfig setUser:sApiToken];
-//	[ObjectiveResourceConfig setPassword:@"x"];
-//	[ObjectiveResourceConfig setResponseType:JSONResponse];
-//	[ObjectiveResourceConfig setLocalClassesPrefix:@"IK"];
-
-	[IKApiClient syncProducts];
-}
-
-+ (NSString*)apiToken
-{
-	return sApiToken;
-}
-
-+ (void)setCustomerEmail:(NSString *)aEmail
-{
-	[sCustomerEmail release];
-	sCustomerEmail = [aEmail retain];
-	
-	[IKApiClient syncCustomer];
-}
-
-+ (NSString*)customerEmail
-{
-	return sCustomerEmail;
-}
-
 + (IKProduct*)productWithIdentifier:(NSString*)productKey
 {
 	NSArray* tProducts = [[NSUserDefaults standardUserDefaults] objectForKey:kProductsKey];
@@ -145,39 +89,6 @@ static BOOL sUseSandbox;
 		}
 	}
 	return tProduct;
-}
-
-+ (void)useSandbox:(BOOL)sandbox
-{
-	sUseSandbox = sandbox;
-}
-
-+ (void)deactivateProduct:(NSString *)productKey
-{
-	DDLogVerbose(@"IK Dectivating %@",productKey);
-	NSUserDefaults* tDefaults = [NSUserDefaults standardUserDefaults];
-
-	if( [self isSubscriptionProduct:productKey] ) {
-		NSDictionary* tOldSubscriptionProducts = [tDefaults objectForKey:kSubscriptionProductsKey];
-		
-		NSMutableDictionary* tSubscriptionProducts = [[NSMutableDictionary alloc] initWithDictionary:tOldSubscriptionProducts];
-		[tSubscriptionProducts removeObjectForKey:productKey];
-		[tDefaults setObject:tSubscriptionProducts forKey:kSubscriptionProductsKey];
-		[tSubscriptionProducts release];
-	}else{
-		NSArray* tOldActivatedProducts = [tDefaults objectForKey:kActivatedProductsKey];
-		
-		NSMutableArray* tActivatedProducts = [[NSMutableArray alloc] init];
-		for (NSString* tProductKey in tOldActivatedProducts) {
-			if( ! [tProductKey isEqualToString:productKey] ) {
-				[tActivatedProducts addObject:tProductKey];
-			}
-		}
-		[tDefaults setObject:tActivatedProducts forKey:kActivatedProductsKey];
-		[tActivatedProducts release];
-	}
-	
-	[tDefaults synchronize];
 }
 
 #pragma mark TransitionKit
@@ -195,6 +106,87 @@ static BOOL sUseSandbox;
 			[[NSUserDefaults standardUserDefaults] synchronize];
 		}
 	}
+}
+
+#pragma mark EnrollMint
+
++ (void)useSandbox:(BOOL)sandbox
+{
+	sUseSandbox = sandbox;
+}
+
++ (NSString*)serverUrl
+{
+	if( sUseSandbox ) {
+		sServerUrl = @"https://sandbox.enrollmint.com/";
+	}else{
+		sServerUrl = @"https://api.enrollmint.com/";
+	}
+	NSString* tServerUrl = [NSString stringWithFormat:@"%@apps/%@/",sServerUrl,[[NSBundle mainBundle] bundleIdentifier]];
+	return tServerUrl;
+}
+
++ (void)setApiToken:(NSString*)aApiToken
+{
+	[sApiToken release];
+	sApiToken = [aApiToken retain];
+	
+	//	[ObjectiveResourceConfig setSite:@"http://enrollmint.com/"];
+	//	[ObjectiveResourceConfig setSite:@"http://local:3000/"];
+	//	[ObjectiveResourceConfig setUser:sApiToken];
+	//	[ObjectiveResourceConfig setPassword:@"x"];
+	//	[ObjectiveResourceConfig setResponseType:JSONResponse];
+	//	[ObjectiveResourceConfig setLocalClassesPrefix:@"IK"];
+	
+	[IKApiClient syncProducts];
+}
+
++ (NSString*)apiToken
+{
+	return sApiToken;
+}
+
++ (void)setCustomerEmail:(NSString *)aEmail
+{
+	[sCustomerEmail release];
+	sCustomerEmail = [aEmail retain];
+	
+	if( sCustomerEmail ) {
+		[IKApiClient syncCustomer];
+	}
+}
+
++ (NSString*)customerEmail
+{
+	return sCustomerEmail;
+}
+
+#pragma mark Purchasing delegate-based
+
++ (void)purchaseProduct:(NSString*)productKey delegate:(id<IKPurchaseDelegate>)delegate
+{
+	[self purchaseProduct:productKey quantity:1 delegate:delegate];
+}
+
++ (void)purchaseProduct:(NSString*)productKey quantity:(int)quantity delegate:(id<IKPurchaseDelegate>)delegate
+{
+	[[InventoryKit sharedObserver] addPurchaseDelegate:delegate productIdentifier:productKey];
+	
+	[self queuePaymentForProductIdentifier:productKey quantity:quantity];
+}
+
+#pragma mark Purchasing block-based
+
++ (void)purchaseProduct:(NSString *)productKey startBlock:(IKBasicBlock)aStartBlock successBlock:(IKStringBlock)aSuccessBlock failureBlock:(IKErrorBlock)aFailureBlock
+{
+	[self purchaseProduct:productKey quantity:1 startBlock:aStartBlock successBlock:aSuccessBlock failureBlock:aFailureBlock];
+}
+
++ (void)purchaseProduct:(NSString *)productKey quantity:(int)quantity startBlock:(IKBasicBlock)aStartBlock successBlock:(IKStringBlock)aSuccessBlock failureBlock:(IKErrorBlock)aFailureBlock
+{
+	[[InventoryKit sharedObserver] addObserverForProductIdentifier:productKey startBlock:aStartBlock successBlock:aSuccessBlock failureBlock:aFailureBlock];
+	
+	[self queuePaymentForProductIdentifier:productKey quantity:quantity];
 }
 
 #pragma mark Non-Consumables
@@ -225,7 +217,7 @@ static BOOL sUseSandbox;
 	NSUserDefaults* tDefaults = [NSUserDefaults standardUserDefaults];
 	NSArray* tOldActivatedProducts = [tDefaults objectForKey:kActivatedProductsKey];
 	NSMutableArray* tActivatedProducts = [[NSMutableArray alloc] initWithArray:tOldActivatedProducts];
-
+	
 	for (NSString* tProductKey in tBundleProducts) {
 		[tActivatedProducts addObject:tProductKey];
 	}
@@ -236,17 +228,41 @@ static BOOL sUseSandbox;
 	[tActivatedProducts release];
 }
 
++ (void)deactivateProduct:(NSString *)productKey
+{
+	DDLogVerbose(@"IK Dectivating %@",productKey);
+	NSUserDefaults* tDefaults = [NSUserDefaults standardUserDefaults];
+
+	if( [self isSubscriptionProduct:productKey] ) {
+		NSDictionary* tOldSubscriptionProducts = [tDefaults objectForKey:kSubscriptionProductsKey];
+		
+		NSMutableDictionary* tSubscriptionProducts = [[NSMutableDictionary alloc] initWithDictionary:tOldSubscriptionProducts];
+		[tSubscriptionProducts removeObjectForKey:productKey];
+		[tDefaults setObject:tSubscriptionProducts forKey:kSubscriptionProductsKey];
+		[tSubscriptionProducts release];
+	}else{
+		NSArray* tOldActivatedProducts = [tDefaults objectForKey:kActivatedProductsKey];
+		
+		NSMutableArray* tActivatedProducts = [[NSMutableArray alloc] init];
+		for (NSString* tProductKey in tOldActivatedProducts) {
+			if( ! [tProductKey isEqualToString:productKey] ) {
+				[tActivatedProducts addObject:tProductKey];
+			}
+		}
+		[tDefaults setObject:tActivatedProducts forKey:kActivatedProductsKey];
+		[tActivatedProducts release];
+	}
+	
+	[tDefaults synchronize];
+}
+
 + (void)restoreProducts:(id<IKRestoreDelegate>)delegate
 {
 	if( [SKPaymentQueue canMakePayments] ) {
 		DDLogVerbose(@"Requesting product restore");
 		[[InventoryKit sharedObserver] setRestoreDelegate:delegate];
 		
-		[[NSUserDefaults standardUserDefaults] removeObjectForKey:kActivatedProductsKey];
-		[[NSUserDefaults standardUserDefaults] synchronize];
-		[InventoryKit restoreTransitionProducts];
-		
-		[[SKPaymentQueue defaultQueue] restoreCompletedTransactions];
+		[self restoreProducts];
 	}else{
 		UIAlertView* tAlert = [[[UIAlertView alloc] initWithTitle:@"Service Unavailable" 
 							   message:@"Please try again later" 
@@ -254,6 +270,19 @@ static BOOL sUseSandbox;
 							   cancelButtonTitle:nil 
 								otherButtonTitles:@"OK",nil] autorelease];
 		[tAlert show];
+	}
+}
+
++ (void)restoreProductsWithSuccessBlock:(IKBasicBlock)successBlock failureBlock:(IKErrorBlock)failureBlock
+{
+	if( [SKPaymentQueue canMakePayments] ) {
+		DDLogVerbose(@"Requesting product restore");
+		[[InventoryKit sharedObserver] setRestoreSuccessBlock:successBlock];
+		[[InventoryKit sharedObserver] setRestoreFailureBlock:failureBlock];
+		
+		[self restoreProducts];
+	}else{
+		failureBlock(0, @"Can not connect to iTunes");
 	}
 }
 
@@ -361,6 +390,15 @@ static BOOL sUseSandbox;
 	}
 }
 
++ (void)restoreProducts
+{
+	[[NSUserDefaults standardUserDefaults] removeObjectForKey:kActivatedProductsKey];
+	[[NSUserDefaults standardUserDefaults] synchronize];
+	[InventoryKit restoreTransitionProducts];
+	
+	[[SKPaymentQueue defaultQueue] restoreCompletedTransactions];
+}
+
 +(BOOL)subscriptionActive:(NSString*)productKey
 {
 	NSDictionary* tSubscriptionProducts = [[NSUserDefaults standardUserDefaults] objectForKey:kSubscriptionProductsKey];
@@ -372,6 +410,13 @@ static BOOL sUseSandbox;
 		}
 	}
 	return NO;
+}
+
++(void)queuePaymentForProductIdentifier:(NSString*)productKey quantity:(int)quantity
+{
+	SKMutablePayment* tPayment = [SKMutablePayment paymentWithProductIdentifier:productKey];
+	tPayment.quantity = quantity;
+	[[SKPaymentQueue defaultQueue] addPayment:tPayment];
 }
 
 @end

@@ -15,18 +15,31 @@ static int ddLogLevel = LOG_LEVEL_VERBOSE;
 
 @interface IKPaymentTransactionObserver (private)
 -(void)fireProductPurchaseStarted:(NSString*)productIdentifier;
--(void)fireProductPurchaseFailed:(NSString*)productIdentifier;
+-(void)fireProductPurchaseFailed:(NSString*)productIdentifier error:(NSError*)error;
 -(void)fireProductPurchaseCompleted:(NSString*)productIdentifier;
 -(void)activateProductOrSubscription:(NSString*)productIdentifier purchaseDate:(NSDate*)purchaseDate quantity:(int)quantity;
+-(void)addObserverForProductIdentifier:(NSString*)productIdentifier successBlock:(IKStringBlock)aSuccessBlock failureBlock:(IKErrorBlock)aFailureBlock;
 @end
 
 
 @implementation IKPaymentTransactionObserver
 
+@synthesize restoreSuccessBlock, restoreFailureBlock;
+
 - (id)init
 {
 	delegates = [[NSMutableDictionary alloc] init];
+	startBlocks = [[NSMutableDictionary alloc] init];
+	successBlocks = [[NSMutableDictionary alloc] init];
+	failureBlocks = [[NSMutableDictionary alloc] init];
 	return self;
+}
+
+- (bool)isTransactionPendingForProduct:(NSString*)productIdentifier
+{
+	return [[delegates allKeys] containsObject:productIdentifier] ||
+		[[successBlocks allKeys] containsObject:productIdentifier] ||
+		[[failureBlocks allKeys] containsObject:productIdentifier];
 }
 
 - (void)addPurchaseDelegate:(id<IKPurchaseDelegate>)delegate productIdentifier:(NSString*)productIdentifier
@@ -39,9 +52,18 @@ static int ddLogLevel = LOG_LEVEL_VERBOSE;
 	restoreDelegate = delegate;
 }
 
-- (bool)isTransactionPendingForProduct:(NSString*)productIdentifier
+- (void)addObserverForProductIdentifier:(NSString *)productIdentifier startBlock:(IKBasicBlock)aStartBlock successBlock:(IKStringBlock)aSuccessBlock failureBlock:(IKErrorBlock)aFailureBlock
 {
-	return [[[delegates keyEnumerator] allObjects] containsObject:productIdentifier];
+	[startBlocks setObject:[[aStartBlock copy] autorelease] forKey:productIdentifier];
+	[successBlocks setObject:[[aSuccessBlock copy] autorelease] forKey:productIdentifier];
+	[failureBlocks setObject:[[aFailureBlock copy] autorelease] forKey:productIdentifier];
+}
+
+- (void)removeObserversForProductIdentifier:(NSString *)productIdentifier
+{
+	[startBlocks removeObjectForKey:productIdentifier];
+	[successBlocks removeObjectForKey:productIdentifier];
+	[failureBlocks removeObjectForKey:productIdentifier];
 }
 
 - (void)paymentQueue:(SKPaymentQueue*)queue updatedTransactions:(NSArray*)transactions
@@ -60,9 +82,9 @@ static int ddLogLevel = LOG_LEVEL_VERBOSE;
 				[self fireProductPurchaseCompleted:t.payment.productIdentifier];
 				break;
 			case SKPaymentTransactionStateFailed:
-				DDLogVerbose(@"transaction failed - identifier: %@, date: %@, ",t.transactionIdentifier,t.transactionDate);
+				DDLogVerbose(@"transaction failed: %@",t.transactionIdentifier);
 				[[SKPaymentQueue defaultQueue] finishTransaction:t];
-				[self fireProductPurchaseFailed:t.payment.productIdentifier];
+				[self fireProductPurchaseFailed:t.payment.productIdentifier error:t.error];
 				break;
 			case SKPaymentTransactionStatePurchasing:
 				DDLogVerbose(@"transaction purchasing: %@",t.transactionIdentifier);	
@@ -76,42 +98,64 @@ static int ddLogLevel = LOG_LEVEL_VERBOSE;
 
 - (void)paymentQueue:(SKPaymentQueue *)queue restoreCompletedTransactionsFailedWithError:(NSError *)error
 {
-	[restoreDelegate productRestoreFailed:error];
+	if( restoreDelegate ) {
+		[restoreDelegate productRestoreFailed:error];
+	}else if( restoreFailureBlock ) {
+		restoreFailureBlock([error code],[error localizedDescription]);
+	}
 }
 
 - (void)paymentQueueRestoreCompletedTransactionsFinished:(SKPaymentQueue *)queue
 {
-	[restoreDelegate productsRestored];
+	if( restoreDelegate ) {
+		[restoreDelegate productsRestored];
+	}else if( restoreSuccessBlock ) {
+		restoreSuccessBlock();
+	}
 }
 
 #pragma mark private
 
 - (void)fireProductPurchaseCompleted:(NSString*)productKey
 {
-	NSArray* tKeys = [[delegates keyEnumerator] allObjects];
-	if( [tKeys containsObject:productKey] ) {
-		id<IKPurchaseDelegate> tDelegate = [delegates objectForKey:productKey];
+	id<IKPurchaseDelegate> tDelegate = [delegates objectForKey:productKey];
+	if( tDelegate ) {
 		[tDelegate purchaseDidCompleteForProductWithKey:productKey];
 		[delegates removeObjectForKey:productKey];
+	}else{
+		IKStringBlock tBlock = [successBlocks objectForKey:productKey];
+		if( tBlock ) {
+			tBlock(productKey);
+			[self removeObserversForProductIdentifier:productKey];
+		}
 	}
 }
 
-- (void)fireProductPurchaseFailed:(NSString*)productKey
+- (void)fireProductPurchaseFailed:(NSString*)productKey error:(NSError*)error;
 {
-	NSArray* tKeys = [[delegates keyEnumerator] allObjects];
-	if( [tKeys containsObject:productKey] ) {
-		id<IKPurchaseDelegate> tDelegate = [delegates objectForKey:productKey];
+	id<IKPurchaseDelegate> tDelegate = [delegates objectForKey:productKey];
+	if( tDelegate ) {
 		[tDelegate purchaseDidFailForProductWithKey:productKey];
 		[delegates removeObjectForKey:productKey];
+	}else{
+		IKErrorBlock tBlock = [failureBlocks objectForKey:productKey];
+		if( tBlock ) {
+			tBlock([error code],[error localizedDescription]);
+			[self removeObserversForProductIdentifier:productKey];
+		}
 	}
 }
 
 - (void)fireProductPurchaseStarted:(NSString*)productKey
 {
-	NSArray* tKeys = [[delegates keyEnumerator] allObjects];
-	if( [tKeys containsObject:productKey] ) {
-		id<IKPurchaseDelegate> tDelegate = [delegates objectForKey:productKey];
+	id<IKPurchaseDelegate> tDelegate = [delegates objectForKey:productKey];
+	if( tDelegate ) {
 		[tDelegate purchaseDidStartForProductWithKey:productKey];
+	}else{
+		IKBasicBlock tBlock = [startBlocks objectForKey:productKey];
+		if( tBlock ) {
+			tBlock();
+		}
 	}
 }
 
@@ -141,6 +185,9 @@ static int ddLogLevel = LOG_LEVEL_VERBOSE;
 - (void)dealloc
 {
 	[delegates release];
+	[startBlocks release];
+	[successBlocks release];
+	[failureBlocks release];
 	[super dealloc];
 }
 
