@@ -25,14 +25,14 @@
 //
 //
 
-#import "ReceiptRequest.h"
+#import "IKReceiptRequest.h"
 #import "ASIHTTPRequest.h"
 #import "NSObject+SBJSON.h"
 
 
 static int ddLogLevel = LOG_LEVEL_VERBOSE;
 
-@implementation ReceiptRequest
+@implementation IKReceiptRequest
 
 + (void)requestCreateReceipt:(NSData*)aReceipt successBlock:(IKBasicBlock)successBlock failureBlock:(IKErrorBlock)failureBlock
 {

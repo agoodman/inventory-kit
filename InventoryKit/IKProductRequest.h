@@ -31,7 +31,7 @@
 
 
 
-@interface ProductRequest : NSObject {
+@interface IKProductRequest : NSObject {
 
 }
 

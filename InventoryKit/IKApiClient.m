@@ -31,11 +31,11 @@
 #import "IKSubscription.h"
 #import "IKCustomer.h"
 #import "InventoryKit.h"
-#import "ProductRequest.h"
+#import "IKProductRequest.h"
 #import <CommonCrypto/CommonDigest.h>
 #import "NSString+SHA1.h"
-#import "ReceiptRequest.h"
-#import "CustomerRequest.h"
+#import "IKReceiptRequest.h"
+#import "IKCustomerRequest.h"
 
 
 static int ddLogLevel = LOG_LEVEL_VERBOSE;
@@ -74,7 +74,7 @@ static int ddLogLevel = LOG_LEVEL_VERBOSE;
 			DDLogVerbose(@"Failed to update %@, error: %@",product.identifier,aResponse);
 		};
 		
-		[ProductRequest requestUpdateProduct:product successBlock:tSuccess failureBlock:tFailure];
+		[IKProductRequest requestUpdateProduct:product successBlock:tSuccess failureBlock:tFailure];
 	}
 }
 
@@ -88,7 +88,7 @@ static int ddLogLevel = LOG_LEVEL_VERBOSE;
 		DDLogVerbose(@"unable to process receipt");
 	};
 	
-	[ReceiptRequest requestCreateReceipt:aReceipt successBlock:tSuccess failureBlock:tFailure];
+	[IKReceiptRequest requestCreateReceipt:aReceipt successBlock:tSuccess failureBlock:tFailure];
 }
 
 #pragma mark private
@@ -125,7 +125,7 @@ static int ddLogLevel = LOG_LEVEL_VERBOSE;
 			DDLogVerbose(@"unable to retrieve products");
 		};
 		
-		[ProductRequest requestProductsWithSuccessBlock:tSuccess failureBlock:tFailure];
+		[IKProductRequest requestProductsWithSuccessBlock:tSuccess failureBlock:tFailure];
 		
 	});
 }
@@ -163,7 +163,7 @@ static int ddLogLevel = LOG_LEVEL_VERBOSE;
 			}
 		};
 		
-		[CustomerRequest requestCustomerByEmail:tCustomerEmail success:tSuccess failure:tFailure];
+		[IKCustomerRequest requestCustomerByEmail:tCustomerEmail success:tSuccess failure:tFailure];
 	});
 }
 
@@ -182,7 +182,7 @@ static int ddLogLevel = LOG_LEVEL_VERBOSE;
 		DDLogVerbose(@"Failed to create customer %@",tCustomerEmail);
 	};
 	
-	[CustomerRequest requestCreateCustomerByEmail:tCustomerEmail success:tSuccess failure:tFailure];
+	[IKCustomerRequest requestCreateCustomerByEmail:tCustomerEmail success:tSuccess failure:tFailure];
 }
 
 /*

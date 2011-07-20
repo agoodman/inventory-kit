@@ -25,7 +25,7 @@
 //
 //
 
-#import "CustomerRequest.h"
+#import "IKCustomerRequest.h"
 #import "InventoryKit.h"
 #import "ASIHTTPRequest.h"
 #import "NSString+SHA1.h"
@@ -33,7 +33,7 @@
 
 static int ddLogLevel = LOG_LEVEL_VERBOSE;
 
-@implementation CustomerRequest
+@implementation IKCustomerRequest
 
 + (void)requestCustomerByEmail:(NSString*)aEmail success:(IKCustomerBlock)successBlock failure:(IKErrorBlock)failureBlock
 {

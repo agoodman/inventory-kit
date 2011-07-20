@@ -29,7 +29,7 @@
 #import "InventoryKit.h"
 
 
-@interface ReceiptRequest : NSObject {
+@interface IKReceiptRequest : NSObject {
 
 }
 

@@ -30,7 +30,7 @@
 #import "IKCustomer.h"
 
 
-@interface CustomerRequest : NSObject {
+@interface IKCustomerRequest : NSObject {
 
 }
 

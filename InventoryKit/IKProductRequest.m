@@ -25,7 +25,7 @@
 //
 //
 
-#import "ProductRequest.h"
+#import "IKProductRequest.h"
 #import "ASIHTTPRequest.h"
 #import "InventoryKit.h"
 #import "SBJSON.h"
@@ -33,7 +33,7 @@
 
 static int ddLogLevel = LOG_LEVEL_VERBOSE;
 
-@implementation ProductRequest
+@implementation IKProductRequest
 
 + (void)requestProductsWithSuccessBlock:(IKArrayBlock)successBlock failureBlock:(IKErrorBlock)failureBlock
 {
