@@ -2,7 +2,7 @@ h1. Overview
 
 InventoryKit is a free open source library that provides a synchronous (blocking) wrapper around Apple's StoreKit API for managing in-app purchases. It also supports programmatic activation of products, allowing you to offer unique and exciting features to your users. In games, for example, you can have an achievement that unlocks a feature the player would otherwise need to buy. It's also easy to include easter eggs that activate products. IK also makes it easy to prompt the user to buy a product, providing a simple asynchronous helper method and delegate interface.
 
-IK 1.0 only supports non-consumable purchases. Future releases aim to include support for consumables and subscriptions. 2.0 is in active development (master) and includes consumables (only stored on the device, not available on other platforms) and auto-renewable subscriptions (synced with "EnrollMint™":http://enrollmint.com, stored locally for offline support). As of 19 Mar 2011, Apple has not yet released auto-renewable subscriptions on iTunes Connect.
+IK 1.0 only supports non-consumable purchases. Future releases aim to include support for consumables and subscriptions. 2.0 is in active development (master) and includes consumables (only stored on the device, not available on other platforms) and auto-renewable subscriptions (synced with "EnrollMint™":http://enrollmint.com, stored locally for offline support).
 
 h1. History
 
@@ -20,7 +20,7 @@ You are recommended to use IK as a git submodule. From your project's git root d
 git submodule add git@github.com:agoodman/inventory-kit.git
 </pre>
 
-Then, in Xcode, add the InventoryKit directory to your project. Once you've done that, you can use any of the IK API features by simply adding the following line to your .m file or, alternatively, to your xxx_Prefix.pch file:
+Then, in Xcode, add the InventoryKit directory to your project. Once you've done that, you can use any of the IK API features by simply adding the following line to your .m file or, alternatively, to your <code>xxx_Prefix.pch</code> file:
 
 <pre>
 #import "InventoryKit.h"
@@ -58,7 +58,7 @@ All products are considered non-consumable unless they are explicitly listed in 
 
 h1. Usage
 
-Using IK is a snap. There are a handful of synchronous methods for querying and manipulating product activation. There are also a handful of asynchronous methods and a corresponding delegate for guiding the user through the purchasing process and for restoring purchases the user made (potentially on a different device).
+Using IK is a snap. There are a handful of synchronous methods for querying and manipulating product activation. There are also a handful of asynchronous methods and a corresponding callback system for guiding the user through the purchasing process and for restoring purchases the user made (potentially on a different device).
 
 h2. Product Activation
 
@@ -84,19 +84,69 @@ BOOL isActivated = [InventoryKit productActivated:@"your.product.id"];
 h2. Product Purchase
 
 h3. Non-Consumables and Single Unit Consumables
+
+h4. Delegate-based
+
 <pre>
 [InventoryKit purchaseProduct:@"your.product.id" delegate:yourDelegate];
 </pre>
 
+h4. Block-based
+
+<pre>
+IKBasicBlock tStart = ^{ 
+  // notify user of pending transaction using dispatch_async to schedule operations on the main thread
+};
+IKStringBlock tSuccess = ^(NSString* productKey) {
+  // notify user of successful purchase using dispatch_async to schedule operations on the main thread
+};
+IKErrorBlock tFailure = ^(int code, NSString* description) {
+	// notify user of failed purchase using dispatch_async to schedule operations on the main thread
+};
+[InventoryKit purchaseProduct:@"your.product.id" startBlock:tStart successBlock:tSuccess failureBlock:tFailure];
+</pre>
+
 h3. Multiple Unit Consumables
+
+h4. Delegate-based
+
 <pre>
 [InventoryKit purchaseProduct:@"your.product.id" quantity:3 delegate:yourDelegate];
 </pre>
 
+h4. Block-based
+
+<pre>
+IKBasicBlock tStart = ^{ 
+  // notify user of pending transaction using dispatch_async to schedule operations on the main thread
+};
+IKStringBlock tSuccess = ^(NSString* productKey) {
+  // notify user of successful purchase using dispatch_async to schedule operations on the main thread
+};
+IKErrorBlock tFailure = ^(int code, NSString* description) {
+	// notify user of failed purchase using dispatch_async to schedule operations on the main thread
+};
+[InventoryKit purchaseProduct:@"your.product.id" quantity:3 startBlock:tStart successBlock:tSuccess failureBlock:tFailure];
+</pre>
+
 h2. Restore Purchases
+
+h4. Delegate-based
 
 <pre>
 [InventoryKit restoreProducts:yourDelegate];
+</pre>
+
+h4. Block-based
+
+<pre>
+IKStringBlock tSuccess = ^(NSString* productKey) {
+  // notify user of successful purchase using dispatch_async to schedule operations on the main thread
+};
+IKErrorBlock tFailure = ^(int code, NSString* description) {
+	// notify user of failed purchase using dispatch_async to schedule operations on the main thread
+};
+[InventoryKit restoreProductsWithSuccessBlock:tSuccess failureBlock:tFailure];
 </pre>
 
 h1. Profit
