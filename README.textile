@@ -62,6 +62,8 @@ Using IK is a snap. There are a handful of synchronous methods for querying and 
 
 h2. Product Activation
 
+h3. Non-Consumables
+
 * Activate/Deactivate a Product
 
 <pre>
@@ -75,10 +77,39 @@ h2. Product Activation
 BOOL isActivated = [InventoryKit productActivated:@"your.product.id"];
 </pre>
 
+h3. Consumables
+
+* Activate Quantity
+
+<pre>
+[InventoryKit activateProduct:@"your.product.id" quantity:3];
+</pre>
+
+* Query Quantity Availability
+
+<pre>
+int tQuantityAvailable = [InventoryKit quantityAvailableForProduct:@"your.product.id"];
+BOOL tCanConsume = [InventoryKit canConsumeProduct:@"your.product.id" quantity:3];
+</pre>
+
+* Consume Quantity
+
+<pre>
+[InventoryKit consumeProduct:@"your.product.id" quantity:3];
+</pre>
+
+h3. Subscriptions
+
 * Time-limited Product Activation
 
 <pre>
 [InventoryKit activateProduct:@"your.product.id" expirationDate:yourDate];
+</pre>
+
+* Query Product Activation
+
+<pre>
+BOOL isActivated = [InventoryKit productActivated:@"your.product.id"];
 </pre>
 
 h2. Product Purchase
@@ -101,7 +132,7 @@ IKStringBlock tSuccess = ^(NSString* productKey) {
   // notify user of successful purchase using dispatch_async to schedule operations on the main thread
 };
 IKErrorBlock tFailure = ^(int code, NSString* description) {
-	// notify user of failed purchase using dispatch_async to schedule operations on the main thread
+  // notify user of failed purchase using dispatch_async to schedule operations on the main thread
 };
 [InventoryKit purchaseProduct:@"your.product.id" startBlock:tStart successBlock:tSuccess failureBlock:tFailure];
 </pre>
@@ -124,7 +155,7 @@ IKStringBlock tSuccess = ^(NSString* productKey) {
   // notify user of successful purchase using dispatch_async to schedule operations on the main thread
 };
 IKErrorBlock tFailure = ^(int code, NSString* description) {
-	// notify user of failed purchase using dispatch_async to schedule operations on the main thread
+  // notify user of failed purchase using dispatch_async to schedule operations on the main thread
 };
 [InventoryKit purchaseProduct:@"your.product.id" quantity:3 startBlock:tStart successBlock:tSuccess failureBlock:tFailure];
 </pre>
@@ -140,11 +171,11 @@ h4. Delegate-based
 h4. Block-based
 
 <pre>
-IKStringBlock tSuccess = ^(NSString* productKey) {
+IKBasicBlock tSuccess = ^{
   // notify user of successful purchase using dispatch_async to schedule operations on the main thread
 };
 IKErrorBlock tFailure = ^(int code, NSString* description) {
-	// notify user of failed purchase using dispatch_async to schedule operations on the main thread
+  // notify user of failed purchase using dispatch_async to schedule operations on the main thread
 };
 [InventoryKit restoreProductsWithSuccessBlock:tSuccess failureBlock:tFailure];
 </pre>
