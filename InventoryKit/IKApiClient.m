@@ -147,23 +147,26 @@ static int ddLogLevel = LOG_LEVEL_VERBOSE;
 + (void)pullCustomer
 {
 	dispatch_async([self syncQueue], ^{
-		// generate secret key
+		// get current customer email
 		NSString* tCustomerEmail = [InventoryKit customerEmail];
 		
-		IKCustomerBlock tSuccess = ^(IKCustomer* aCustomer) {
-			for (IKSubscription* tSubscription in aCustomer.subscriptions) {
-				[InventoryKit activateProduct:tSubscription.productIdentifier expirationDate:tSubscription.expirationDate];
-			}
-		};
-		
-		IKErrorBlock tFailure = ^(int aStatusCode, NSString* aResponse) {
-			if( aStatusCode==404 ) {
-				DDLogVerbose(@"Customer does not exist.");
-				[self createCustomer];
-			}
-		};
-		
-		[IKCustomerRequest requestCustomerByEmail:tCustomerEmail success:tSuccess failure:tFailure];
+		if( tCustomerEmail ) {
+			// only request info if customer is active
+			IKCustomerBlock tSuccess = ^(IKCustomer* aCustomer) {
+				for (IKSubscription* tSubscription in aCustomer.subscriptions) {
+					[InventoryKit activateProduct:tSubscription.productIdentifier expirationDate:tSubscription.expirationDate];
+				}
+			};
+			
+			IKErrorBlock tFailure = ^(int aStatusCode, NSString* aResponse) {
+				if( aStatusCode==404 ) {
+					DDLogVerbose(@"Customer does not exist.");
+					[self createCustomer];
+				}
+			};
+			
+			[IKCustomerRequest requestCustomerByEmail:tCustomerEmail success:tSuccess failure:tFailure];
+		}
 	});
 }
 
