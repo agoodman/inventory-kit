@@ -30,7 +30,7 @@
 #import "ObjectiveResourceDateFormatter.h"
 
 
-static int ddLogLevel = LOG_LEVEL_VERBOSE;
+static int ddLogLevel = LOG_LEVEL_WARN;
 
 @implementation IKCustomer
 
