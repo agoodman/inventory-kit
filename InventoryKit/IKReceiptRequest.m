@@ -27,7 +27,6 @@
 
 #import "IKReceiptRequest.h"
 #import "ASIHTTPRequest.h"
-#import "NSObject+SBJSON.h"
 
 
 static int ddLogLevel = LOG_LEVEL_VERBOSE;

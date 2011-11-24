@@ -28,7 +28,6 @@
 #import "IKProductRequest.h"
 #import "ASIHTTPRequest.h"
 #import "InventoryKit.h"
-#import "SBJSON.h"
 
 
 static int ddLogLevel = LOG_LEVEL_VERBOSE;

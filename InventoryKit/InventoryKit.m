@@ -31,12 +31,12 @@
 
 
 static int ddLogLevel = LOG_LEVEL_VERBOSE;
-
-@interface InventoryKit (private)
 static NSString* sApiToken;
 static NSString* sServerUrl;
 static NSString* sCustomerEmail;
 static BOOL sUseSandbox;
+
+@interface InventoryKit (private)
 +(IKPaymentTransactionObserver*)sharedObserver;
 +(void)restoreTransitionProducts;
 +(void)restoreProducts;
