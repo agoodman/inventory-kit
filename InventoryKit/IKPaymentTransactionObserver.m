@@ -30,7 +30,7 @@
 #import "IKApiClient.h"
 
 
-static int ddLogLevel = LOG_LEVEL_VERBOSE;
+static int ddLogLevel = LOG_LEVEL_WARN;
 
 @interface IKPaymentTransactionObserver (private)
 -(void)fireProductPurchaseStarted:(NSString*)productIdentifier;
@@ -91,12 +91,12 @@ static int ddLogLevel = LOG_LEVEL_VERBOSE;
 		switch (t.transactionState) {
 			case SKPaymentTransactionStatePurchased:
 				DDLogVerbose(@"transaction purchased: %@",t.transactionIdentifier);
-				if( [InventoryKit apiToken] && [InventoryKit isSubscriptionProduct:t.payment.productIdentifier] ) {
-					[IKApiClient processReceipt:t.transactionReceipt];
-				}
 			case SKPaymentTransactionStateRestored:
 				DDLogVerbose(@"transaction restored: %@",t.transactionIdentifier);
 				[self activateProductOrSubscription:t.payment.productIdentifier purchaseDate:t.transactionDate quantity:t.payment.quantity];
+				if( [InventoryKit apiToken] && [InventoryKit isSubscriptionProduct:t.payment.productIdentifier] ) {
+					[IKApiClient processReceipt:t.transactionReceipt];
+				}
 				[[SKPaymentQueue defaultQueue] finishTransaction:t];
 				[self fireProductPurchaseCompleted:t.payment.productIdentifier];
 				break;
