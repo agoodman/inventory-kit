@@ -31,11 +31,8 @@
 #import "IKSubscription.h"
 #import "IKCustomer.h"
 #import "InventoryKit.h"
-#import "IKProductRequest.h"
 #import <CommonCrypto/CommonDigest.h>
 #import "NSString+SHA1.h"
-#import "IKReceiptRequest.h"
-#import "IKCustomerRequest.h"
 
 
 static int ddLogLevel = LOG_LEVEL_WARN;
@@ -100,7 +97,7 @@ static int ddLogLevel = LOG_LEVEL_WARN;
 			NSString* tPath = [[NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex:0] stringByAppendingPathComponent:@"IKSubscriptionPrices.plist"];
 			NSDictionary* tOldSubscriptionPrices = [NSDictionary dictionaryWithContentsOfFile:tPath];
 			NSMutableDictionary* tSubscriptionPrices = [[NSMutableDictionary alloc] initWithDictionary:tOldSubscriptionPrices];
-			NSMutableSet* tDeltas = [[NSMutableSet alloc] init];
+			NSMutableSet* tDeltas = [NSMutableSet set];
 			
 			for (IKProduct* product in aProducts) {
 				NSNumber* tPrice = [tSubscriptionPrices objectForKey:product.identifier];
@@ -114,10 +111,7 @@ static int ddLogLevel = LOG_LEVEL_WARN;
 			if( tDeltas.count>0 ) {
 				DDLogVerbose(@"saving products locally: %@",tSubscriptionPrices);
 				[tSubscriptionPrices writeToFile:tPath atomically:YES];
-			}
-			
-			[tSubscriptionPrices release];
-			[tDeltas release];
+			}			
 		};
 		
 		IKErrorBlock tFailure = ^(int aStatusCode, NSString* aResponse) {
@@ -199,7 +193,7 @@ static int ddLogLevel = LOG_LEVEL_WARN;
 		NSString* tCustomerEmail = [InventoryKit customerEmail];
 		NSString* tSecretKey = [[NSString stringWithFormat:@"--%@--%@--",productKey,tCustomerEmail] secretKey];
 		
-		IKSubscription* tSubscription = [[[IKSubscription alloc] init] autorelease];
+		IKSubscription* tSubscription = [[IKSubscription alloc] init];
 
 //		// retrieve current subscriptions
 //		NSArray* tSubscriptions = [[NSUserDefaults standardUserDefaults] objectForKey:kSubscriptionsKey];
