@@ -42,27 +42,19 @@ static int ddLogLevel = LOG_LEVEL_WARN;
 
 + (id)customerWithDictionary:(NSDictionary*)aDictionary
 {
-	IKCustomer* tCustomer = [[[IKCustomer alloc] init] autorelease];
+	IKCustomer* tCustomer = [[IKCustomer alloc] init];
 	tCustomer.customerId = [aDictionary objectForKey:@"id"];
 	tCustomer.email = [aDictionary objectForKey:@"email"];
 	NSArray* tSubscriptionDicts = [aDictionary objectForKey:@"subscriptions"];
 	NSMutableArray* tSubscriptions = [NSMutableArray array];
 	for (NSDictionary* dict in tSubscriptionDicts) {
-		IKSubscription* tSub = [[[IKSubscription alloc] init] autorelease];
+		IKSubscription* tSub = [[IKSubscription alloc] init];
 		tSub.productIdentifier = [dict objectForKey:@"product_identifier"];
 		tSub.expirationDate = [dict objectForKey:@"expiration_date"];
 		[tSubscriptions addObject:tSub];
 	}
 	tCustomer.subscriptions = tSubscriptions;
 	return tCustomer;
-}
-
-- (void)dealloc
-{
-	[customerId release];
-	[email release];
-	[subscriptions release];
-	[super dealloc];
 }
 
 @end

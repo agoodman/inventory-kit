@@ -39,7 +39,7 @@
 
 + (IKProduct*)productWithDictionary:(NSDictionary*)dictionary
 {
-	IKProduct* tProduct = [[[IKProduct alloc] init] autorelease];
+	IKProduct* tProduct = [[IKProduct alloc] init];
 	tProduct.productId = [dictionary objectForKey:@"id"];
 	tProduct.identifier = [dictionary objectForKey:@"identifier"];
 	tProduct.price = [dictionary objectForKey:@"price"];
@@ -47,16 +47,6 @@
 	tProduct.createdAt = [dictionary objectForKey:@"created_at"];
 	tProduct.updatedAt = [dictionary objectForKey:@"updated_at"];
 	return tProduct;
-}
-
-- (void)dealloc
-{
-	[productId release];
-	[identifier release];
-	[price release];
-	[createdAt release];
-	[updatedAt release];
-	[super dealloc];
 }
 
 @end

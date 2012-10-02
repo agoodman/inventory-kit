@@ -27,7 +27,7 @@
 
 #import "IKProductObserver.h"
 #import "IKProduct.h"
-#import "IKApiClient.h"
+#import "InventoryKit.h"
 
 
 static int ddLogLevel = LOG_LEVEL_WARN;
@@ -63,24 +63,20 @@ static int ddLogLevel = LOG_LEVEL_WARN;
 	
 	if( tDeltas.count>0 ) {
 		// push updated product prices to web service
-		NSMutableSet* tProducts = [[NSMutableSet alloc] init];
+		NSMutableSet* tProducts = [NSMutableSet set];
 		for (NSString* productId in tDeltas) {
-			IKProduct* tProduct = [[[IKProduct alloc] init] autorelease];
+			IKProduct* tProduct = [[IKProduct alloc] init];
 			tProduct.identifier = productId;
 			tProduct.price = [tSubscriptionPrices objectForKey:productId];
 			[tProducts addObject:tProduct];
 		}
-		[IKApiClient updateProducts:tProducts];
+		[InventoryKit updateProducts:tProducts];
 		if( [tSubscriptionPrices writeToFile:tPath atomically:YES] ) {
 			DDLogVerbose(@"Successfully updated local product prices");
 		}else{
 			DDLogVerbose(@"Unable to save product prices");
 		}
-		[tProducts release];
 	}
-	
-	[tDeltas release];
-	[tSubscriptionPrices release];
 }
 
 @end

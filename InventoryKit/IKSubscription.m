@@ -37,11 +37,4 @@
 	return @"subscriptions";
 }
 
-- (void)dealloc
-{
-	[productIdentifier release];
-	[expirationDate release];
-	[super dealloc];
-}
-
 @end

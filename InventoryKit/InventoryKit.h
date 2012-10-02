@@ -29,6 +29,7 @@
 #import "IKPurchaseDelegate.h"
 #import "IKRestoreDelegate.h"
 #import "IKProduct.h"
+#import "IKApi.h"
 
 #define kTransitionProductsKey @"TransitionKitProductsKey"
 #define kActivatedProductsKey @"ActivatedProductsKey"
@@ -59,12 +60,18 @@ typedef void (^IKErrorBlock)(int,NSString*);
 
 #pragma mark EnrollMint
 
++(void)setApiClient:(id<IKApi>)aClient;
++(void)updateProducts:(NSArray*)aProducts;
 +(void)useSandbox:(BOOL)sandbox;
 +(NSString*)serverUrl;
 +(void)setApiToken:(NSString*)aApiToken;
 +(NSString*)apiToken;
 +(void)setCustomerEmail:(NSString*)aEmail;
 +(NSString*)customerEmail;
+
+#pragma mark Retrieve Product block-based
+
++ (void)retrieveProductsWithIdentifiers:(NSSet*)aIdentifiers successBlock:(IKArrayBlock)aSuccessBlock;
 
 #pragma mark Purchasing delegate-based
 
@@ -93,5 +100,6 @@ typedef void (^IKErrorBlock)(int,NSString*);
 #pragma mark Subscriptions
 
 +(void)activateProduct:(NSString*)productKey expirationDate:(NSDate*)aExpirationDate;
++(void)processReceipt:(NSData*)aReceiptData;
 
 @end

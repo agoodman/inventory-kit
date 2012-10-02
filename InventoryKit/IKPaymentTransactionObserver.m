@@ -27,7 +27,7 @@
 
 #import "IKPaymentTransactionObserver.h"
 #import "InventoryKit.h"
-#import "IKApiClient.h"
+#import "IKApi.h"
 
 
 static int ddLogLevel = LOG_LEVEL_WARN;
@@ -43,7 +43,7 @@ static int ddLogLevel = LOG_LEVEL_WARN;
 
 @implementation IKPaymentTransactionObserver
 
-@synthesize restoreSuccessBlock, restoreFailureBlock;
+@synthesize restoreSuccessBlock, restoreFailureBlock, productBlock;
 
 - (id)init
 {
@@ -73,9 +73,9 @@ static int ddLogLevel = LOG_LEVEL_WARN;
 
 - (void)addObserverForProductIdentifier:(NSString *)productIdentifier startBlock:(IKBasicBlock)aStartBlock successBlock:(IKStringBlock)aSuccessBlock failureBlock:(IKErrorBlock)aFailureBlock
 {
-	[startBlocks setObject:[[aStartBlock copy] autorelease] forKey:productIdentifier];
-	[successBlocks setObject:[[aSuccessBlock copy] autorelease] forKey:productIdentifier];
-	[failureBlocks setObject:[[aFailureBlock copy] autorelease] forKey:productIdentifier];
+	[startBlocks setObject:[aStartBlock copy] forKey:productIdentifier];
+	[successBlocks setObject:[aSuccessBlock copy] forKey:productIdentifier];
+	[failureBlocks setObject:[aFailureBlock copy] forKey:productIdentifier];
 }
 
 - (void)removeObserversForProductIdentifier:(NSString *)productIdentifier
@@ -94,9 +94,7 @@ static int ddLogLevel = LOG_LEVEL_WARN;
 			case SKPaymentTransactionStateRestored:
 				DDLogVerbose(@"transaction restored: %@",t.transactionIdentifier);
 				[self activateProductOrSubscription:t.payment.productIdentifier purchaseDate:t.transactionDate quantity:t.payment.quantity];
-				if( [InventoryKit apiToken] && [InventoryKit isSubscriptionProduct:t.payment.productIdentifier] ) {
-					[IKApiClient processReceipt:t.transactionReceipt];
-				}
+				[InventoryKit processReceipt:t.transactionReceipt];
 				[[SKPaymentQueue defaultQueue] finishTransaction:t];
 				[self fireProductPurchaseCompleted:t.payment.productIdentifier];
 				break;
@@ -131,6 +129,13 @@ static int ddLogLevel = LOG_LEVEL_WARN;
 	}else if( restoreSuccessBlock ) {
 		restoreSuccessBlock();
 	}
+}
+
+- (void)productsRequest:(SKProductsRequest *)request didReceiveResponse:(SKProductsResponse *)response
+{
+    if( productBlock ) {
+        productBlock(response.products);
+    }
 }
 
 #pragma mark private
@@ -198,17 +203,5 @@ static int ddLogLevel = LOG_LEVEL_WARN;
 		[InventoryKit activateProduct:productIdentifier];
 	}
 }
-
-#pragma mark 
-
-- (void)dealloc
-{
-	[delegates release];
-	[startBlocks release];
-	[successBlocks release];
-	[failureBlocks release];
-	[super dealloc];
-}
-
 
 @end

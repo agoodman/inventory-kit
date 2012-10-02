@@ -32,7 +32,7 @@
 #import "IKRestoreDelegate.h"
 
 
-@interface IKPaymentTransactionObserver : NSObject <SKPaymentTransactionObserver> {
+@interface IKPaymentTransactionObserver : NSObject <SKPaymentTransactionObserver,SKProductsRequestDelegate> {
 
 	NSMutableDictionary* delegates;
 	id<IKRestoreDelegate> restoreDelegate;
@@ -42,11 +42,13 @@
 	NSMutableDictionary* failureBlocks;
 	IKBasicBlock restoreSuccessBlock;
 	IKErrorBlock restoreFailureBlock;
+    IKArrayBlock productBlock;
 	
 }
 
 @property (copy) IKBasicBlock restoreSuccessBlock;
 @property (copy) IKErrorBlock restoreFailureBlock;
+@property (copy) IKArrayBlock productBlock;
 
 -(bool)isTransactionPendingForProduct:(NSString*)productIdentifier;
 

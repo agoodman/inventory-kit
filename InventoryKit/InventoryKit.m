@@ -27,11 +27,12 @@
 
 #import "InventoryKit.h"
 #import "IKPaymentTransactionObserver.h"
-#import "IKApiClient.h"
+#import "IKProductObserver.h"
 
 
 static int ddLogLevel = LOG_LEVEL_VERBOSE;
 static NSString* sApiToken;
+static id<IKApi> sClient;
 static NSString* sServerUrl;
 static NSString* sCustomerEmail;
 static BOOL sUseSandbox;
@@ -101,7 +102,7 @@ static BOOL sUseSandbox;
 	IKProduct* tProduct = nil;
 	for (NSDictionary* dict in tProducts) {
 		if( [productKey isEqualToString:[dict objectForKey:@"identifier"]] ) {
-			tProduct = [[[IKProduct alloc] init] autorelease];
+			tProduct = [[IKProduct alloc] init];
 			tProduct.identifier = productKey;
 			tProduct.productId = [dict objectForKey:@"productId"];
 			break;
@@ -129,55 +130,25 @@ static BOOL sUseSandbox;
 
 #pragma mark EnrollMint
 
-+ (void)useSandbox:(BOOL)sandbox
++ (void)setApiClient:(id<IKApi>)aClient
 {
-	sUseSandbox = sandbox;
+    sClient = aClient;
 }
 
-+ (NSString*)serverUrl
++ (void)updateProducts:(NSArray *)aProducts
 {
-	if( sUseSandbox ) {
-		sServerUrl = @"https://sandbox.enrollmint.com/";
-	}else{
-		sServerUrl = @"https://api.enrollmint.com/";
-	}
-	NSString* tServerUrl = [NSString stringWithFormat:@"%@apps/%@/",sServerUrl,[[NSBundle mainBundle] bundleIdentifier]];
-	return tServerUrl;
+    if( sClient!=nil ) {
+    }
 }
 
-+ (void)setApiToken:(NSString*)aApiToken
-{
-	[sApiToken release];
-	sApiToken = [aApiToken retain];
-	
-	//	[ObjectiveResourceConfig setSite:@"http://enrollmint.com/"];
-	//	[ObjectiveResourceConfig setSite:@"http://local:3000/"];
-	//	[ObjectiveResourceConfig setUser:sApiToken];
-	//	[ObjectiveResourceConfig setPassword:@"x"];
-	//	[ObjectiveResourceConfig setResponseType:JSONResponse];
-	//	[ObjectiveResourceConfig setLocalClassesPrefix:@"IK"];
-	
-	[IKApiClient syncProducts];
-}
+#pragma mark Retrieve Product block-based
 
-+ (NSString*)apiToken
++ (void)retrieveProductsWithIdentifiers:(NSSet*)aIdentifiers successBlock:(IKArrayBlock)aSuccessBlock
 {
-	return sApiToken;
-}
-
-+ (void)setCustomerEmail:(NSString *)aEmail
-{
-	[sCustomerEmail release];
-	sCustomerEmail = [aEmail retain];
-	
-	if( sCustomerEmail ) {
-		[IKApiClient syncCustomer];
-	}
-}
-
-+ (NSString*)customerEmail
-{
-	return sCustomerEmail;
+    SKProductsRequest* tReq = [[SKProductsRequest alloc] initWithProductIdentifiers:aIdentifiers];
+    [self sharedObserver].productBlock = aSuccessBlock;
+    tReq.delegate = [self sharedObserver];
+    [tReq start];
 }
 
 #pragma mark Purchasing delegate-based
@@ -223,7 +194,6 @@ static BOOL sUseSandbox;
 		[tActivatedProducts addObject:[NSString stringWithString:productKey]];
 		[tDefaults setObject:tActivatedProducts forKey:kActivatedProductsKey];
 		[tDefaults synchronize];
-		[tActivatedProducts release];
 	}
 }
 
@@ -243,8 +213,6 @@ static BOOL sUseSandbox;
 	
 	[tDefaults setObject:tActivatedProducts forKey:kActivatedProductsKey];
 	[tDefaults synchronize];
-	
-	[tActivatedProducts release];
 }
 
 + (void)deactivateProduct:(NSString *)productKey
@@ -258,7 +226,6 @@ static BOOL sUseSandbox;
 		NSMutableDictionary* tSubscriptionProducts = [[NSMutableDictionary alloc] initWithDictionary:tOldSubscriptionProducts];
 		[tSubscriptionProducts removeObjectForKey:productKey];
 		[tDefaults setObject:tSubscriptionProducts forKey:kSubscriptionProductsKey];
-		[tSubscriptionProducts release];
 	}else{
 		NSArray* tOldActivatedProducts = [tDefaults objectForKey:kActivatedProductsKey];
 		
@@ -269,7 +236,6 @@ static BOOL sUseSandbox;
 			}
 		}
 		[tDefaults setObject:tActivatedProducts forKey:kActivatedProductsKey];
-		[tActivatedProducts release];
 	}
 	
 	[tDefaults synchronize];
@@ -283,11 +249,11 @@ static BOOL sUseSandbox;
 		
 		[self restoreProducts];
 	}else{
-		UIAlertView* tAlert = [[[UIAlertView alloc] initWithTitle:@"Service Unavailable" 
+		UIAlertView* tAlert = [[UIAlertView alloc] initWithTitle:@"Service Unavailable"
 							   message:@"Please try again later" 
 							   delegate:nil
 							   cancelButtonTitle:nil 
-								otherButtonTitles:@"OK",nil] autorelease];
+								otherButtonTitles:@"OK",nil];
 		[tAlert show];
 	}
 }
@@ -325,8 +291,6 @@ static BOOL sUseSandbox;
 	
 	[tDefaults setObject:tConsumableProducts forKey:kConsumableProductsKey];
 	[tDefaults synchronize];
-
-	[tConsumableProducts release];
 }
 
 +(int)quantityAvailableForProduct:(NSString*)productKey
@@ -363,8 +327,6 @@ static BOOL sUseSandbox;
 	
 	[tDefaults setObject:tConsumableProducts forKey:kConsumableProductsKey];
 	[tDefaults synchronize];
-	
-	[tConsumableProducts release];
 }
 
 #pragma mark Subscriptions
@@ -382,8 +344,6 @@ static BOOL sUseSandbox;
 	
 	[tDefaults setObject:tSubscriptionProducts forKey:kSubscriptionProductsKey];
 	[tDefaults synchronize];
-	
-	[tSubscriptionProducts release];
 }
 
 #pragma mark private
@@ -429,6 +389,12 @@ static BOOL sUseSandbox;
 		}
 	}
 	return NO;
+}
+
++ (void)processReceipt:(NSData *)aReceiptData
+{
+    if( sClient!=nil ) {
+    }
 }
 
 +(void)queuePaymentForProductIdentifier:(NSString*)productKey quantity:(int)quantity
