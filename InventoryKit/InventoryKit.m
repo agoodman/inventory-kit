@@ -275,7 +275,7 @@ static BOOL sUseSandbox;
 
 +(void)activateProduct:(NSString*)productKey quantity:(int)aQuantity
 {
-	DDLogVerbose(@"IK Activating %dea of %@",productKey,aQuantity);
+	DDLogVerbose(@"IK Activating %dea of %@",aQuantity,productKey);
 	NSUserDefaults* tDefaults = [NSUserDefaults standardUserDefaults];
 	NSDictionary* tOldConsumableProducts = [tDefaults objectForKey:kConsumableProductsKey];
 	
@@ -323,7 +323,11 @@ static BOOL sUseSandbox;
 	NSMutableDictionary* tConsumableProducts = [[NSMutableDictionary alloc] initWithDictionary:tOldConsumableProducts];
 	NSNumber* tOldQuantity = [tConsumableProducts objectForKey:productKey];
 	NSNumber* tQuantity = [NSNumber numberWithInt:[tOldQuantity intValue]-aQuantity];
-	[tConsumableProducts setObject:tQuantity forKey:productKey];
+    if( tQuantity.intValue<0 ) {
+        [tConsumableProducts setObject:[NSNumber numberWithInt:0] forKey:productKey];
+    }else{
+        [tConsumableProducts setObject:tQuantity forKey:productKey];
+    }
 	
 	[tDefaults setObject:tConsumableProducts forKey:kConsumableProductsKey];
 	[tDefaults synchronize];
