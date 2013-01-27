@@ -133,7 +133,7 @@ static int ddLogLevel = LOG_LEVEL_WARN;
 
 - (void)productsRequest:(SKProductsRequest *)request didReceiveResponse:(SKProductsResponse *)response
 {
-    if( productBlock ) {
+    if( response.products.count!=0 && productBlock ) {
         productBlock(response.products);
     }
 }
